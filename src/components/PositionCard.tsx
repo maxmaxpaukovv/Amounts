@@ -453,24 +453,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
               
               return (
                 <div key={workTypeGroup.workType} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* ИСПРАВЛЕНИЕ: Заголовок статьи работ теперь СИНИЙ вместо фиолетового */}
+                  {/* ИСПРАВЛЕНИЕ: Заголовок статьи работ теперь СИНИЙ вместо фиолетового, БЕЗ ЦИФР */}
                   <div className="w-full px-3 py-2 bg-blue-100 hover:bg-blue-200 flex items-center justify-between transition-colors">
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-blue-900 text-sm">
                         {workTypeGroup.workType}
                       </span>
-                      <div className="flex items-center space-x-1">
-                        {allIncomeItems.length > 0 && (
-                          <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                            {allIncomeItems.length}
-                          </span>
-                        )}
-                        {allExpenseItems.length > 0 && (
-                          <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                            {allExpenseItems.length}
-                          </span>
-                        )}
-                      </div>
+                      {/* УБИРАЕМ ЦИФРЫ КОЛИЧЕСТВА */}
                     </div>
                     
                     <div className="flex items-center space-x-2">
@@ -529,24 +518,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
                         
                         return (
                           <div key={positionKey} className="border-b border-gray-200 last:border-b-0">
-                            {/* Заголовок позиции с расчетами - ОТСТУП ДЛЯ ИЕРАРХИИ */}
+                            {/* ИСПРАВЛЕНИЕ: Заголовок позиции БЕЗ ЦИФР */}
                             <div className="w-full pl-6 pr-3 py-2 bg-white hover:bg-gray-50 flex items-center justify-between transition-colors">
                               <div className="flex items-center space-x-2">
                                 <span className="font-medium text-blue-900 text-sm">
                                   {positionGroup.positionName}
                                 </span>
-                                <div className="flex items-center space-x-1">
-                                  {incomeItems.length > 0 && (
-                                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                      {incomeItems.length}
-                                    </span>
-                                  )}
-                                  {expenseItems.length > 0 && (
-                                    <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                      {expenseItems.length}
-                                    </span>
-                                  )}
-                                </div>
+                                {/* УБИРАЕМ ЦИФРЫ КОЛИЧЕСТВА */}
                               </div>
                               
                               <div className="flex items-center space-x-2">
@@ -594,7 +572,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                             {/* Доходы и расходы */}
                             {!positionGroup.isCollapsed && (
                               <div>
-                                {/* Доходы - БОЛЬШИЙ ОТСТУП ДЛЯ ИЕРАРХИИ */}
+                                {/* ИСПРАВЛЕНИЕ: Доходы БЕЗ ЦИФР */}
                                 {incomeItems.length > 0 && (
                                   <div className="border-b border-gray-200">
                                     <button
@@ -604,9 +582,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                       <div className="flex items-center space-x-2">
                                         <TrendingUp className="w-4 h-4 text-green-600" />
                                         <span className="font-medium text-green-800 text-sm">Доходы</span>
-                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                          {incomeItems.length}
-                                        </span>
+                                        {/* УБИРАЕМ ЦИФРЫ КОЛИЧЕСТВА */}
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         {/* Расчет для свернутых доходов */}
@@ -647,7 +623,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                   </div>
                                 )}
                                 
-                                {/* Расходы - БОЛЬШИЙ ОТСТУП ДЛЯ ИЕРАРХИИ */}
+                                {/* ИСПРАВЛЕНИЕ: Расходы БЕЗ ЦИФР */}
                                 {expenseItems.length > 0 && (
                                   <div className="border-b border-gray-200">
                                     <button
@@ -657,9 +633,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                       <div className="flex items-center space-x-2">
                                         <TrendingDown className="w-4 h-4 text-red-600" />
                                         <span className="font-medium text-red-800 text-sm">Расходы</span>
-                                        <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                          {expenseItems.length}
-                                        </span>
+                                        {/* УБИРАЕМ ЦИФРЫ КОЛИЧЕСТВА */}
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         {/* Расчет для свернутых расходов */}
@@ -715,9 +689,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
               <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
                 <div className="px-3 py-2 bg-gray-100 flex items-center space-x-2">
                   <span className="font-medium text-gray-900 text-sm">Без статьи работ</span>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                    {groupedItemsByWorkType.itemsWithoutWorkType.length}
-                  </span>
+                  {/* УБИРАЕМ ЦИФРЫ КОЛИЧЕСТВА */}
                 </div>
                 
                 <div className="bg-white p-2 space-y-2">
