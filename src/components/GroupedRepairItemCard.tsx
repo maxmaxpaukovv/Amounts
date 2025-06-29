@@ -67,22 +67,62 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
     }
   };
 
-  // Функция для определения, является ли карточка карточкой сотрудника
+  // ИСПРАВЛЕННАЯ функция для определения, является ли карточка карточкой сотрудника
   const isEmployeeCard = (): boolean => {
-    return item.positionName.toLowerCase().includes('оплата труда') && 
-           item.incomeExpenseType === 'Расходы' &&
-           item.salaryGoods.toLowerCase().includes('зарплата');
+    // Проверяем по нескольким критериям
+    const nameCheck = item.positionName.toLowerCase().includes('оплата труда') || 
+                     item.analytics8.toLowerCase().includes('оплата труда');
+    const typeCheck = item.incomeExpenseType === 'Расходы';
+    const categoryCheck = item.salaryGoods.toLowerCase().includes('зарплата');
+    
+    console.log('🔍 Проверка карточки сотрудника:', {
+      positionName: item.positionName,
+      analytics8: item.analytics8,
+      nameCheck,
+      typeCheck,
+      categoryCheck,
+      isEmployee: nameCheck && typeCheck && categoryCheck
+    });
+    
+    return nameCheck && typeCheck && categoryCheck;
   };
 
-  // Функция для извлечения информации о сотруднике из названия позиции
+  // УЛУЧШЕННАЯ функция для извлечения информации о сотруднике из названия позиции
   const getEmployeeInfo = () => {
-    const match = item.positionName.match(/оплата труда (\w+) \((\d+(?:\.\d+)?)\s*ч\)/i);
-    if (match) {
-      return {
-        employeeName: match[1],
-        hours: parseFloat(match[2])
-      };
+    // Пробуем разные варианты регулярных выражений
+    const patterns = [
+      /оплата труда (\w+) \((\d+(?:\.\d+)?)\s*ч\)/i,  // "оплата труда слесарь (5 ч)"
+      /оплата труда (\w+)\s*\((\d+(?:\.\d+)?)\s*ч\)/i, // без пробела перед скобкой
+      /(\w+)\s*\((\d+(?:\.\d+)?)\s*ч\)/i,              // просто "слесарь (5 ч)"
+    ];
+    
+    // Проверяем и positionName, и analytics8
+    const textsToCheck = [item.positionName, item.analytics8];
+    
+    for (const text of textsToCheck) {
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) {
+          console.log('✅ Найдена информация о сотруднике:', {
+            text,
+            pattern: pattern.source,
+            employeeName: match[1],
+            hours: parseFloat(match[2])
+          });
+          
+          return {
+            employeeName: match[1],
+            hours: parseFloat(match[2])
+          };
+        }
+      }
     }
+    
+    console.log('❌ Не удалось извлечь информацию о сотруднике из:', {
+      positionName: item.positionName,
+      analytics8: item.analytics8
+    });
+    
     return null;
   };
 
@@ -232,6 +272,15 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
   const showHoursEdit = fromPositionId && onEmployeeHoursChange && isEmployeeCard();
   const employeeInfo = getEmployeeInfo();
   const hourlyRate = calculateHourlyRate();
+  const isEmployee = isEmployeeCard();
+
+  console.log('🎯 Рендер карточки:', {
+    positionName: item.positionName,
+    isEmployee,
+    showHoursEdit,
+    employeeInfo,
+    fromPositionId
+  });
 
   return (
     <div
@@ -246,7 +295,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
         ${!isDraggable ? 'cursor-default opacity-60' : ''}
         ${isGrouped ? 'border-l-4 border-l-orange-400' : ''}
         ${isExpense ? 'border-r-4 border-r-red-400' : ''}
-        ${isEmployeeCard() ? 'border-t-4 border-t-green-400' : ''}
+        ${isEmployee ? 'border-t-4 border-t-green-400' : ''}
       `}
     >
       {/* Индикатор группировки - перемещен в левый верхний угол */}
@@ -272,7 +321,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
       </div>
 
       {/* Индикатор карточки сотрудника */}
-      {isEmployeeCard() && (
+      {isEmployee && (
         <div className={`absolute top-2 ${isGrouped ? 'left-32' : 'left-20'} flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium`}>
           <Clock className="w-3 h-3" />
           <span>Сотрудник</span>
@@ -304,7 +353,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
       )}
 
       {/* Основной контент с отступом сверху для кнопок */}
-      <div className={`${isGrouped || showCreateButton || showQuantityControl || isEmployeeCard() ? 'mt-8' : 'mt-6'}`}>
+      <div className={`${isGrouped || showCreateButton || showQuantityControl || isEmployee ? 'mt-8' : 'mt-6'}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-2 flex-1">
             <Package className="w-4 h-4 text-blue-600 flex-shrink-0" />
@@ -314,13 +363,13 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
           </div>
         </div>
         
-        {/* Информация о сотруднике (если это карточка сотрудника) */}
-        {isEmployeeCard() && employeeInfo && (
-          <div className="mb-3 p-2 bg-green-50 rounded-lg">
-            <div className="flex items-center justify-between text-sm">
+        {/* УЛУЧШЕННАЯ информация о сотруднике (если это карточка сотрудника) */}
+        {isEmployee && employeeInfo && (
+          <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between text-sm mb-2">
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-green-600" />
-                <span className="font-medium text-green-800">{employeeInfo.employeeName}</span>
+                <span className="font-medium text-green-800 capitalize">{employeeInfo.employeeName}</span>
               </div>
               <div className="flex items-center space-x-2">
                 {isEditingHours ? (
@@ -333,18 +382,19 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
                       onChange={(e) => setEditHoursValue(e.target.value)}
                       onBlur={handleHoursSave}
                       onKeyDown={handleHoursKeyDown}
-                      className="w-16 text-sm border border-gray-300 rounded px-1 py-0.5 text-center"
+                      className="w-16 text-sm border border-green-300 rounded px-1 py-0.5 text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
                       autoFocus
                     />
-                    <span className="text-green-700 text-xs">ч</span>
+                    <span className="text-green-700 text-xs font-medium">ч</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-1">
-                    <span className="text-green-700 font-medium">{employeeInfo.hours} ч</span>
+                    <span className="text-green-700 font-bold text-lg">{employeeInfo.hours}</span>
+                    <span className="text-green-600 text-sm">ч</span>
                     {showHoursEdit && (
                       <button
                         onClick={handleHoursEdit}
-                        className="p-0.5 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                        className="p-1 text-green-500 hover:text-green-700 hover:bg-green-100 rounded transition-colors ml-1"
                         title="Изменить количество часов"
                       >
                         <Edit3 className="w-3 h-3" />
@@ -355,8 +405,11 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
               </div>
             </div>
             {hourlyRate > 0 && (
-              <div className="mt-1 text-xs text-green-600">
-                Ставка: {hourlyRate.toLocaleString('ru-RU')} ₽/час
+              <div className="text-xs text-green-600 flex items-center justify-between">
+                <span>Ставка: {hourlyRate.toLocaleString('ru-RU')} ₽/час</span>
+                <span className="font-medium">
+                  Итого: {(hourlyRate * employeeInfo.hours).toLocaleString('ru-RU')} ₽
+                </span>
               </div>
             )}
           </div>
