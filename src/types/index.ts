@@ -21,7 +21,8 @@ export interface RepairItem {
   sumWithoutVAT: number;
   vatAmount: number;
   workType: string;
-  incomeExpenseType: 'Доходы' | 'Расходы'; // Новое поле
+  incomeExpenseType: 'Доходы' | 'Расходы';
+  salaryGoods: string; // Новое поле "Зарплата/Товары"
 }
 
 export interface GroupedRepairItem extends RepairItem {

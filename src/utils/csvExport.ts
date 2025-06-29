@@ -25,6 +25,7 @@ export const exportToCSV = (positions: Position[]) => {
     'НДС в руб',
     'Статья работ',
     'Доходы/Расходы',
+    'Зарплата/Товары',
     'Услуга',
     'Номер позиции',
     'Цена'
@@ -62,7 +63,8 @@ export const exportToCSV = (positions: Position[]) => {
         formatNumber(item.sumWithoutVAT),
         formatNumber(item.vatAmount),
         item.workType,
-        item.incomeExpenseType, // Добавляем новое поле в экспорт
+        item.incomeExpenseType,
+        item.salaryGoods, // Добавляем новое поле в экспорт
         position.service,
         position.positionNumber.toString(),
         formatNumber(item.revenue)

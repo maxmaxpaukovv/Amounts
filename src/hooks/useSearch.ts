@@ -27,7 +27,8 @@ export const useSearch = (
       item.uniqueKey.toLowerCase().includes(query) ||
       item.id.toLowerCase().includes(query) ||
       item.workType.toLowerCase().includes(query) ||
-      item.incomeExpenseType.toLowerCase().includes(query) // Добавляем поиск по типу доходы/расходы
+      item.incomeExpenseType.toLowerCase().includes(query) ||
+      item.salaryGoods.toLowerCase().includes(query) // Добавляем поиск по новому полю
     );
   }, [unallocatedItems, searchQuery]);
 

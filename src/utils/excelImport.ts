@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { RepairItem } from '../types';
 
-export const importFromExcel = (file: File): Promise<RepairItem[]> => {
+export const importFromExcel = async (file: File): Promise<RepairItem[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -12,116 +12,139 @@ export const importFromExcel = (file: File): Promise<RepairItem[]> => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        // Конвертируем в JSON без заголовков (массив массивов)
+        // Конвертируем в JSON с заголовками
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
         
         if (jsonData.length < 2) {
           throw new Error('Файл должен содержать заголовки и данные');
         }
         
-        // Пропускаем первую строку (заголовки) и обрабатываем данные
+        const headers = jsonData[0] as string[];
         const rows = jsonData.slice(1) as any[][];
         
-        // Маппинг по индексам столбцов для новой структуры
-        // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11, M=12, N=13, O=14, P=15, Q=16, R=17, S=18, T=19, U=20, V=21, W=22
-        const columnMapping = {
-          id: 0,              // A - ID
-          uniqueKey: 1,       // B - Уникальный ключ
-          positionName: 2,    // C - Название позиции
-          year: 3,            // D - Год
-          month: 4,           // E - Месяц
-          quarter: 5,         // F - Квартал
-          date: 6,            // G - Дата
-          analytics1: 7,      // H - Аналитика1
-          analytics2: 8,      // I - Аналитика2
-          analytics3: 9,      // J - Аналитика3
-          analytics4: 10,     // K - Аналитика4
-          analytics5: 11,     // L - Аналитика5
-          analytics6: 12,     // M - Аналитика6
-          analytics7: 13,     // N - Аналитика7
-          analytics8: 14,     // O - Аналитика8
-          debitAccount: 15,   // P - Счет Дт
-          creditAccount: 16,  // Q - Счет Кт
-          revenue: 17,        // R - Выручка
-          quantity: 18,       // S - Кол-во
-          sumWithoutVAT: 19,  // T - Сумма без НДС
-          vatAmount: 20,      // U - НДС в руб
-          workType: 21,       // V - Статья работ
-          incomeExpenseType: 22 // W - Доходы/Расходы
+        // Находим индексы нужных столбцов
+        const getColumnIndex = (possibleNames: string[]): number => {
+          for (const name of possibleNames) {
+            const index = headers.findIndex(h => 
+              h && h.toString().toLowerCase().includes(name.toLowerCase())
+            );
+            if (index !== -1) return index;
+          }
+          return -1;
         };
         
-        // Конвертируем данные
-        const repairItems: RepairItem[] = rows
-          .filter(row => row && row.length > 0 && row[columnMapping.id]) // Фильтруем пустые строки
-          .map((row, index) => {
-            try {
-              // Обработка даты
-              let dateValue = row[columnMapping.date];
-              if (typeof dateValue === 'number') {
-                // Excel serial date
-                const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
-                dateValue = excelDate.toLocaleDateString('ru-RU');
-              } else if (dateValue instanceof Date) {
-                dateValue = dateValue.toLocaleDateString('ru-RU');
-              } else {
-                dateValue = String(dateValue || '');
-              }
-              
-              // Обработка числовых значений
-              const parseNumber = (value: any, defaultValue: number = 0): number => {
-                if (typeof value === 'number') return value;
-                const parsed = parseFloat(String(value || defaultValue).replace(/[^\d.-]/g, ''));
-                return isNaN(parsed) ? defaultValue : parsed;
-              };
-              
-              const parseInteger = (value: any, defaultValue: number = 0): number => {
-                if (typeof value === 'number') return Math.round(value);
-                const parsed = parseInt(String(value || defaultValue));
-                return isNaN(parsed) ? defaultValue : parsed;
-              };
-
-              // Обработка типа доходы/расходы
-              const incomeExpenseValue = String(row[columnMapping.incomeExpenseType] || 'Доходы').trim();
-              const incomeExpenseType: 'Доходы' | 'Расходы' = 
-                incomeExpenseValue === 'Расходы' ? 'Расходы' : 'Доходы';
-              
-              return {
-                id: String(row[columnMapping.id] || `imported-${Date.now()}-${index}`),
-                uniqueKey: String(row[columnMapping.uniqueKey] || ''),
-                positionName: String(row[columnMapping.positionName] || ''),
-                year: parseInteger(row[columnMapping.year], new Date().getFullYear()),
-                month: parseInteger(row[columnMapping.month], 1),
-                quarter: String(row[columnMapping.quarter] || ''),
-                date: dateValue,
-                analytics1: String(row[columnMapping.analytics1] || ''),
-                analytics2: String(row[columnMapping.analytics2] || ''),
-                analytics3: String(row[columnMapping.analytics3] || ''),
-                analytics4: String(row[columnMapping.analytics4] || ''),
-                analytics5: String(row[columnMapping.analytics5] || ''),
-                analytics6: String(row[columnMapping.analytics6] || ''),
-                analytics7: String(row[columnMapping.analytics7] || ''),
-                analytics8: String(row[columnMapping.analytics8] || ''),
-                debitAccount: String(row[columnMapping.debitAccount] || ''),
-                creditAccount: String(row[columnMapping.creditAccount] || ''),
-                revenue: parseNumber(row[columnMapping.revenue]),
-                quantity: parseInteger(row[columnMapping.quantity], 1),
-                sumWithoutVAT: parseNumber(row[columnMapping.sumWithoutVAT]),
-                vatAmount: parseNumber(row[columnMapping.vatAmount]),
-                workType: String(row[columnMapping.workType] || '').trim(),
-                incomeExpenseType // Новое поле
-              };
-            } catch (error) {
-              console.warn(`Ошибка обработки строки ${index + 2}:`, error);
-              return null;
-            }
-          })
-          .filter((item): item is RepairItem => item !== null);
+        const columnIndices = {
+          id: getColumnIndex(['ID']),
+          uniqueKey: getColumnIndex(['Уникальный ключ', 'Unique']),
+          positionName: getColumnIndex(['Название позиции', 'Position', 'Позиция']),
+          year: getColumnIndex(['Год', 'Year']),
+          month: getColumnIndex(['Месяц', 'Month']),
+          quarter: getColumnIndex(['Квартал', 'Quarter']),
+          date: getColumnIndex(['Дата', 'Date']),
+          analytics1: getColumnIndex(['Аналитика1', 'Analytics1']),
+          analytics2: getColumnIndex(['Аналитика2', 'Analytics2']),
+          analytics3: getColumnIndex(['Аналитика3', 'Analytics3']),
+          analytics4: getColumnIndex(['Аналитика4', 'Analytics4']),
+          analytics5: getColumnIndex(['Аналитика5', 'Analytics5']),
+          analytics6: getColumnIndex(['Аналитика6', 'Analytics6']),
+          analytics7: getColumnIndex(['Аналитика7', 'Analytics7']),
+          analytics8: getColumnIndex(['Аналитика8', 'Analytics8']),
+          debitAccount: getColumnIndex(['Счет Дт', 'Debit']),
+          creditAccount: getColumnIndex(['Счет Кт', 'Credit']),
+          revenue: getColumnIndex(['Выручка', 'Revenue']),
+          quantity: getColumnIndex(['Кол-во', 'Quantity']),
+          sumWithoutVAT: getColumnIndex(['Сумма без НДС', 'Sum without VAT']),
+          vatAmount: getColumnIndex(['НДС в руб', 'VAT Amount']),
+          workType: getColumnIndex(['Статья работ', 'Work Type']),
+          incomeExpenseType: getColumnIndex(['Доходы/Расходы', 'Income/Expense']),
+          salaryGoods: getColumnIndex(['Зарплата/Товары', 'Salary/Goods']) // Новое поле
+        };
         
-        if (repairItems.length === 0) {
-          throw new Error('Не удалось импортировать данные. Проверьте формат файла.');
+        // Проверяем обязательные поля
+        const requiredFields = ['id', 'positionName', 'revenue'];
+        const missingFields = requiredFields.filter(field => columnIndices[field as keyof typeof columnIndices] === -1);
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Не найдены обязательные столбцы: ${missingFields.join(', ')}`);
         }
         
-        resolve(repairItems);
+        const items: RepairItem[] = [];
+        
+        rows.forEach((row, index) => {
+          try {
+            // Пропускаем пустые строки
+            if (!row || row.every(cell => !cell && cell !== 0)) {
+              return;
+            }
+            
+            const getValue = (colIndex: number, defaultValue: any = '') => {
+              return colIndex !== -1 && row[colIndex] !== undefined && row[colIndex] !== null 
+                ? row[colIndex] 
+                : defaultValue;
+            };
+            
+            const getStringValue = (colIndex: number, defaultValue: string = '') => {
+              const value = getValue(colIndex, defaultValue);
+              return value ? value.toString().trim() : defaultValue;
+            };
+            
+            const getNumberValue = (colIndex: number, defaultValue: number = 0) => {
+              const value = getValue(colIndex, defaultValue);
+              if (typeof value === 'number') return value;
+              if (typeof value === 'string') {
+                // Заменяем запятые на точки для правильного парсинга
+                const cleanValue = value.replace(',', '.');
+                const parsed = parseFloat(cleanValue);
+                return isNaN(parsed) ? defaultValue : parsed;
+              }
+              return defaultValue;
+            };
+            
+            // Определяем тип доходы/расходы
+            let incomeExpenseType: 'Доходы' | 'Расходы' = 'Доходы';
+            const incomeExpenseValue = getStringValue(columnIndices.incomeExpenseType);
+            if (incomeExpenseValue.toLowerCase().includes('расход')) {
+              incomeExpenseType = 'Расходы';
+            }
+            
+            const item: RepairItem = {
+              id: getStringValue(columnIndices.id, `item_${index + 1}`),
+              uniqueKey: getStringValue(columnIndices.uniqueKey),
+              positionName: getStringValue(columnIndices.positionName),
+              year: getNumberValue(columnIndices.year, new Date().getFullYear()),
+              month: getNumberValue(columnIndices.month, new Date().getMonth() + 1),
+              quarter: getStringValue(columnIndices.quarter, 'Q1'),
+              date: getStringValue(columnIndices.date, new Date().toISOString().split('T')[0]),
+              analytics1: getStringValue(columnIndices.analytics1),
+              analytics2: getStringValue(columnIndices.analytics2),
+              analytics3: getStringValue(columnIndices.analytics3),
+              analytics4: getStringValue(columnIndices.analytics4),
+              analytics5: getStringValue(columnIndices.analytics5),
+              analytics6: getStringValue(columnIndices.analytics6),
+              analytics7: getStringValue(columnIndices.analytics7),
+              analytics8: getStringValue(columnIndices.analytics8),
+              debitAccount: getStringValue(columnIndices.debitAccount),
+              creditAccount: getStringValue(columnIndices.creditAccount),
+              revenue: getNumberValue(columnIndices.revenue),
+              quantity: getNumberValue(columnIndices.quantity, 1),
+              sumWithoutVAT: getNumberValue(columnIndices.sumWithoutVAT),
+              vatAmount: getNumberValue(columnIndices.vatAmount),
+              workType: getStringValue(columnIndices.workType),
+              incomeExpenseType,
+              salaryGoods: getStringValue(columnIndices.salaryGoods) // Новое поле
+            };
+            
+            items.push(item);
+          } catch (error) {
+            console.warn(`Ошибка обработки строки ${index + 2}:`, error);
+          }
+        });
+        
+        if (items.length === 0) {
+          throw new Error('Не удалось импортировать ни одной записи');
+        }
+        
+        resolve(items);
       } catch (error) {
         reject(error);
       }
