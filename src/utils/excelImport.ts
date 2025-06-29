@@ -23,6 +23,12 @@ export const importFromExcel = async (file: File): Promise<RepairItem[]> => {
         const rows = jsonData.slice(1) as any[][];
         
         console.log('📋 Заголовки Excel файла:', headers);
+        console.log('📋 Количество столбцов:', headers.length);
+        
+        // ОТЛАДКА: Выводим все заголовки с их индексами
+        headers.forEach((header, index) => {
+          console.log(`Столбец ${index}: "${header}"`);
+        });
         
         // УЛУЧШЕННАЯ функция поиска столбцов - ищем точные совпадения и частичные
         const getColumnIndex = (possibleNames: string[]): number => {
@@ -60,15 +66,39 @@ export const importFromExcel = async (file: File): Promise<RepairItem[]> => {
           month: getColumnIndex(['Месяц', 'Month']),
           quarter: getColumnIndex(['Квартал', 'Quarter']),
           date: getColumnIndex(['Дата', 'Date']),
-          // ИСПРАВЛЕННЫЙ поиск полей аналитики - ищем точные названия
-          analytics1: getColumnIndex(['Аналитика1', 'Analytics1', 'Аналитика 1']),
-          analytics2: getColumnIndex(['Аналитика2', 'Analytics2', 'Аналитика 2']),
-          analytics3: getColumnIndex(['Аналитика3', 'Analytics3', 'Аналитика 3']),
-          analytics4: getColumnIndex(['Аналитика4', 'Analytics4', 'Аналитика 4']),
-          analytics5: getColumnIndex(['Аналитика5', 'Analytics5', 'Аналитика 5']),
-          analytics6: getColumnIndex(['Аналитика6', 'Analytics6', 'Аналитика 6']),
-          analytics7: getColumnIndex(['Аналитика7', 'Analytics7', 'Аналитика 7']),
-          analytics8: getColumnIndex(['Аналитика8', 'Analytics8', 'Аналитика 8']),
+          // РАСШИРЕННЫЙ поиск полей аналитики - добавляем больше вариантов
+          analytics1: getColumnIndex([
+            'Аналитика1', 'Analytics1', 'Аналитика 1', 'Аналитика_1',
+            'Аналитика', 'Analytics', 'Analytic1', 'Analytic 1'
+          ]),
+          analytics2: getColumnIndex([
+            'Аналитика2', 'Analytics2', 'Аналитика 2', 'Аналитика_2',
+            'Analytic2', 'Analytic 2'
+          ]),
+          analytics3: getColumnIndex([
+            'Аналитика3', 'Analytics3', 'Аналитика 3', 'Аналитика_3',
+            'Analytic3', 'Analytic 3'
+          ]),
+          analytics4: getColumnIndex([
+            'Аналитика4', 'Analytics4', 'Аналитика 4', 'Аналитика_4',
+            'Analytic4', 'Analytic 4'
+          ]),
+          analytics5: getColumnIndex([
+            'Аналитика5', 'Analytics5', 'Аналитика 5', 'Аналитика_5',
+            'Analytic5', 'Analytic 5'
+          ]),
+          analytics6: getColumnIndex([
+            'Аналитика6', 'Analytics6', 'Аналитика 6', 'Аналитика_6',
+            'Analytic6', 'Analytic 6'
+          ]),
+          analytics7: getColumnIndex([
+            'Аналитика7', 'Analytics7', 'Аналитика 7', 'Аналитика_7',
+            'Analytic7', 'Analytic 7'
+          ]),
+          analytics8: getColumnIndex([
+            'Аналитика8', 'Analytics8', 'Аналитика 8', 'Аналитика_8',
+            'Analytic8', 'Analytic 8'
+          ]),
           debitAccount: getColumnIndex(['Счет Дт', 'Debit Account', 'Debit']),
           creditAccount: getColumnIndex(['Счет Кт', 'Credit Account', 'Credit']),
           revenue: getColumnIndex(['Выручка', 'Revenue']),
@@ -81,6 +111,16 @@ export const importFromExcel = async (file: File): Promise<RepairItem[]> => {
         };
         
         console.log('🔍 Найденные индексы столбцов:', columnIndices);
+        
+        // ОТЛАДКА: Если аналитика не найдена, ищем столбцы с похожими названиями
+        if (columnIndices.analytics1 === -1) {
+          console.log('🔍 Поиск столбцов, содержащих "аналитик"...');
+          headers.forEach((header, index) => {
+            if (header && header.toString().toLowerCase().includes('аналитик')) {
+              console.log(`🎯 Найден столбец с "аналитик" в позиции ${index}: "${header}"`);
+            }
+          });
+        }
         
         // Проверяем обязательные поля
         const requiredFields = ['id', 'positionName', 'revenue'];
@@ -110,7 +150,7 @@ export const importFromExcel = async (file: File): Promise<RepairItem[]> => {
               const stringValue = value ? value.toString().trim() : defaultValue;
               
               // Логируем значения аналитики для отладки
-              if (colIndex !== -1 && headers[colIndex] && headers[colIndex].toLowerCase().includes('аналитика')) {
+              if (colIndex !== -1 && headers[colIndex] && headers[colIndex].toLowerCase().includes('аналитик')) {
                 console.log(`📊 ${headers[colIndex]} (столбец ${colIndex}):`, `"${stringValue}"`);
               }
               
