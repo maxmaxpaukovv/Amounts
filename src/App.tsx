@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RepairItem, Position, GroupedRepairItem, Employee } from './types';
+import { RepairItem, Position, GroupedRepairItem, Employee, Wire } from './types';
 import { UnallocatedItemsPanel } from './components/UnallocatedItemsPanel';
 import PositionCard from './components/PositionCard';
 import { ImportButton } from './components/ImportButton';
@@ -428,6 +428,49 @@ function App() {
     setUnallocatedItems(prevItems => [...prevItems, newItem]);
   };
 
+  // НОВАЯ функция для добавления карточки провода из справочника
+  const handleAddWireItem = (templateItem: RepairItem, wire: Wire, meters: number) => {
+    // Генерируем новый ID
+    const newId = `wire-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Рассчитываем сумму
+    const totalAmount = wire.price_per_meter * meters;
+    const sumWithoutVAT = totalAmount * 0.8; // 80% без НДС
+    const vatAmount = totalAmount * 0.2; // 20% НДС
+    
+    // Формируем название провода
+    const wireName = `${wire.brand} ${wire.cross_section}мм² ${wire.insulation_type}`;
+    
+    // Создаем новую карточку провода
+    const newItem: RepairItem = {
+      ...templateItem, // Копируем все свойства шаблона
+      id: newId,
+      uniqueKey: `${newId}-${wireName.toLowerCase().replace(/\s+/g, '-')}-${meters}m`,
+      positionName: `${wireName} (${meters} м)_ID_${newId}`,
+      analytics8: `${wireName} (${meters} м)`,
+      // Устанавливаем финансовые данные
+      revenue: totalAmount,
+      sumWithoutVAT: sumWithoutVAT,
+      vatAmount: vatAmount,
+      quantity: meters,
+      incomeExpenseType: 'Доходы' // Провода - это доходы
+    };
+
+    console.log('🔌 Создание карточки провода:', {
+      templateId: templateItem.id,
+      newId: newItem.id,
+      wireName,
+      meters,
+      pricePerMeter: wire.price_per_meter,
+      totalAmount,
+      workType: newItem.workType,
+      salaryGoods: newItem.salaryGoods
+    });
+
+    // Добавляем новую карточку в неразмещенные
+    setUnallocatedItems(prevItems => [...prevItems, newItem]);
+  };
+
   // Обработка изменения количества в позиции
   const handleQuantityChange = (positionId: string, groupedItem: GroupedRepairItem, newQuantity: number) => {
     const currentQuantity = groupedItem.groupedIds.length;
@@ -696,6 +739,7 @@ function App() {
           onCreatePositionFromGroup={createPositionFromGroup}
           onAddNewItem={handleAddNewItem}
           onAddEmployeeItem={handleAddEmployeeItem}
+          onAddWireItem={handleAddWireItem}
         />
 
         {/* Right Content Area - Independent scroll */}
