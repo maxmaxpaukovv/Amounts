@@ -47,9 +47,26 @@ const PositionCard: React.FC<PositionCardProps> = ({
   
   // Статьи работ и позиции развернуты по умолчанию
   const [collapsedWorkTypes, setCollapsedWorkTypes] = useState<Set<string>>(new Set());
-  const [collapsedPositions, setCollapsedPositions] = useState<Set<string>>(new Set());
   
-  // ИСПРАВЛЕНИЕ: Доходы/расходы свернуты по умолчанию - используем инвертированную логику
+  // ИСПРАВЛЕНИЕ: Позиции СВЕРНУТЫ по умолчанию - автоматически сворачиваем все позиции при создании
+  const [collapsedPositions, setCollapsedPositions] = useState<Set<string>>(() => {
+    const initialCollapsed = new Set<string>();
+    
+    // Проходим по всем элементам и создаем ключи для сворачивания позиций
+    position.items.forEach(item => {
+      const workType = item.workType.trim();
+      const basePositionName = getBasePositionName(item.positionName);
+      
+      if (workType) {
+        // Автоматически сворачиваем все позиции по умолчанию
+        initialCollapsed.add(`${workType}_${basePositionName}`);
+      }
+    });
+    
+    return initialCollapsed;
+  });
+  
+  // Доходы/расходы свернуты по умолчанию - используем инвертированную логику
   const [expandedIncomeExpense, setExpandedIncomeExpense] = useState<Set<string>>(new Set());
   
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +83,33 @@ const PositionCard: React.FC<PositionCardProps> = ({
       inputRef.current.select();
     }
   }, [isEditing]);
+
+  // ИСПРАВЛЕНИЕ: Эффект для автоматического сворачивания позиций при добавлении новых элементов
+  useEffect(() => {
+    // Когда в позицию добавляются новые элементы, автоматически сворачиваем новые позиции
+    const currentPositions = new Set<string>();
+
+    // Собираем все текущие ключи позиций
+    position.items.forEach(item => {
+      const workType = item.workType.trim();
+      const basePositionName = getBasePositionName(item.positionName);
+      
+      if (workType) {
+        currentPositions.add(`${workType}_${basePositionName}`);
+      }
+    });
+
+    // Автоматически сворачиваем ТОЛЬКО новые позиции
+    setCollapsedPositions(prev => {
+      const newSet = new Set(prev);
+      currentPositions.forEach(positionKey => {
+        if (!prev.has(positionKey)) {
+          newSet.add(positionKey); // Новые позиции сворачиваем
+        }
+      });
+      return newSet;
+    });
+  }, [position.items.length]); // Срабатывает при изменении количества элементов
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -175,6 +219,14 @@ const PositionCard: React.FC<PositionCardProps> = ({
     }
   };
 
+  // ИСПРАВЛЕННАЯ функция проверки состояния сворачивания
+  // Теперь проверяем ОТСУТСТВИЕ ключа в expandedIncomeExpense (инвертированная логика)
+  const isIncomeExpenseCollapsed = (workType: string, positionName: string, incomeExpenseType: 'Доходы' | 'Расходы'): boolean => {
+    const key = `${workType}_${positionName}_${incomeExpenseType}`;
+    // ИНВЕРТИРОВАННАЯ ЛОГИКА: если ключа НЕТ в expandedIncomeExpense, значит секция СВЕРНУТА
+    return !expandedIncomeExpense.has(key);
+  };
+
   // ПРАВИЛЬНАЯ ИЕРАРХИЯ: Сначала по статье работ, потом по названию позиции
   const groupedItemsByWorkType = useMemo(() => {
     // Сначала группируем одинаковые позиции (доходы и расходы отдельно)
@@ -267,14 +319,6 @@ const PositionCard: React.FC<PositionCardProps> = ({
       totalQuantity,
       averagePrice
     };
-  };
-
-  // ИСПРАВЛЕННАЯ функция проверки состояния сворачивания
-  // Теперь проверяем ОТСУТСТВИЕ ключа в expandedIncomeExpense (инвертированная логика)
-  const isIncomeExpenseCollapsed = (workType: string, positionName: string, incomeExpenseType: 'Доходы' | 'Расходы'): boolean => {
-    const key = `${workType}_${positionName}_${incomeExpenseType}`;
-    // ИНВЕРТИРОВАННАЯ ЛОГИКА: если ключа НЕТ в expandedIncomeExpense, значит секция СВЕРНУТА
-    return !expandedIncomeExpense.has(key);
   };
 
   const canReceiveDrop = draggedItem !== null;
@@ -539,7 +583,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                               </div>
                             </div>
                             
-                            {/* Доходы и расходы */}
+                            {/* Доходы и расходы - ПОКАЗЫВАЕМ ТОЛЬКО ЕСЛИ ПОЗИЦИЯ НЕ СВЕРНУТА */}
                             {!positionGroup.isCollapsed && (
                               <div>
                                 {/* Доходы БЕЗ ЦИФР - ИСПОЛЬЗУЕМ ИСПРАВЛЕННУЮ ЛОГИКУ */}
