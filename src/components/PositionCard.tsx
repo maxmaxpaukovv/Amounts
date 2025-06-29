@@ -45,13 +45,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const [editValue, setEditValue] = useState(position.service);
   const [isDragOver, setIsDragOver] = useState(false);
   
-  // ИСПРАВЛЕНИЕ: Статьи работ и позиции развернуты по умолчанию
+  // Статьи работ и позиции развернуты по умолчанию
   const [collapsedWorkTypes, setCollapsedWorkTypes] = useState<Set<string>>(new Set());
   const [collapsedPositions, setCollapsedPositions] = useState<Set<string>>(new Set());
   
-  // ИСПРАВЛЕНИЕ: Только доходы/расходы свернуты по умолчанию
+  // ИСПРАВЛЕНИЕ: Доходы/расходы СВЕРНУТЫ по умолчанию
   const [collapsedIncomeExpense, setCollapsedIncomeExpense] = useState<Set<string>>(() => {
-    // Автоматически сворачиваем все доходы/расходы при создании
+    // Автоматически сворачиваем ВСЕ доходы/расходы при создании
     const initialCollapsed = new Set<string>();
     
     // Проходим по всем элементам и создаем ключи для сворачивания доходов/расходов
@@ -60,7 +60,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
       const basePositionName = getBasePositionName(item.positionName);
       
       if (workType) {
-        // Сворачиваем доходы и расходы по умолчанию
+        // СВОРАЧИВАЕМ ВСЕ доходы и расходы по умолчанию
         initialCollapsed.add(`${workType}_${basePositionName}_Доходы`);
         initialCollapsed.add(`${workType}_${basePositionName}_Расходы`);
       }
@@ -84,31 +84,24 @@ const PositionCard: React.FC<PositionCardProps> = ({
     }
   }, [isEditing]);
 
-  // ИСПРАВЛЕНИЕ: Эффект для автоматического сворачивания ТОЛЬКО доходов/расходов при добавлении новых элементов
+  // ИСПРАВЛЕНИЕ: Эффект для автоматического сворачивания ВСЕХ доходов/расходов при добавлении новых элементов
   useEffect(() => {
-    // Когда в позицию добавляются новые элементы, автоматически сворачиваем только новые доходы/расходы
-    const currentIncomeExpense = new Set<string>();
+    // Когда в позицию добавляются новые элементы, автоматически сворачиваем ВСЕ доходы/расходы
+    const allIncomeExpenseKeys = new Set<string>();
 
-    // Собираем все текущие ключи доходов/расходов
+    // Собираем ВСЕ ключи доходов/расходов
     position.items.forEach(item => {
       const workType = item.workType.trim();
       const basePositionName = getBasePositionName(item.positionName);
       
       if (workType) {
-        currentIncomeExpense.add(`${workType}_${basePositionName}_${item.incomeExpenseType}`);
+        allIncomeExpenseKeys.add(`${workType}_${basePositionName}_Доходы`);
+        allIncomeExpenseKeys.add(`${workType}_${basePositionName}_Расходы`);
       }
     });
 
-    // Автоматически сворачиваем ТОЛЬКО новые доходы/расходы
-    setCollapsedIncomeExpense(prev => {
-      const newSet = new Set(prev);
-      currentIncomeExpense.forEach(incomeExpenseKey => {
-        if (!prev.has(incomeExpenseKey)) {
-          newSet.add(incomeExpenseKey); // Новые доходы/расходы сворачиваем
-        }
-      });
-      return newSet;
-    });
+    // СВОРАЧИВАЕМ ВСЕ доходы/расходы (и существующие, и новые)
+    setCollapsedIncomeExpense(allIncomeExpenseKeys);
 
     // НЕ сворачиваем статьи работ и позиции - они остаются развернутыми
   }, [position.items.length]); // Срабатывает при изменении количества элементов
@@ -453,7 +446,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
               
               return (
                 <div key={workTypeGroup.workType} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* ИСПРАВЛЕНИЕ: Заголовок статьи работ теперь СИНИЙ вместо фиолетового, БЕЗ ЦИФР */}
+                  {/* Заголовок статьи работ с расчетами - СИНЯЯ ЗАЛИВКА БЕЗ ЦИФР */}
                   <div className="w-full px-3 py-2 bg-blue-100 hover:bg-blue-200 flex items-center justify-between transition-colors">
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-blue-900 text-sm">
@@ -518,7 +511,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                         
                         return (
                           <div key={positionKey} className="border-b border-gray-200 last:border-b-0">
-                            {/* ИСПРАВЛЕНИЕ: Заголовок позиции БЕЗ ЦИФР */}
+                            {/* Заголовок позиции с расчетами БЕЗ ЦИФР */}
                             <div className="w-full pl-6 pr-3 py-2 bg-white hover:bg-gray-50 flex items-center justify-between transition-colors">
                               <div className="flex items-center space-x-2">
                                 <span className="font-medium text-blue-900 text-sm">
@@ -572,7 +565,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                             {/* Доходы и расходы */}
                             {!positionGroup.isCollapsed && (
                               <div>
-                                {/* ИСПРАВЛЕНИЕ: Доходы БЕЗ ЦИФР */}
+                                {/* Доходы БЕЗ ЦИФР */}
                                 {incomeItems.length > 0 && (
                                   <div className="border-b border-gray-200">
                                     <button
@@ -623,7 +616,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                   </div>
                                 )}
                                 
-                                {/* ИСПРАВЛЕНИЕ: Расходы БЕЗ ЦИФР */}
+                                {/* Расходы БЕЗ ЦИФР */}
                                 {expenseItems.length > 0 && (
                                   <div className="border-b border-gray-200">
                                     <button
