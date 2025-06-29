@@ -49,25 +49,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const [collapsedWorkTypes, setCollapsedWorkTypes] = useState<Set<string>>(new Set());
   const [collapsedPositions, setCollapsedPositions] = useState<Set<string>>(new Set());
   
-  // ИСПРАВЛЕНИЕ: Доходы/расходы СВЕРНУТЫ по умолчанию
-  const [collapsedIncomeExpense, setCollapsedIncomeExpense] = useState<Set<string>>(() => {
-    // Автоматически сворачиваем ВСЕ доходы/расходы при создании
-    const initialCollapsed = new Set<string>();
-    
-    // Проходим по всем элементам и создаем ключи для сворачивания доходов/расходов
-    position.items.forEach(item => {
-      const workType = item.workType.trim();
-      const basePositionName = getBasePositionName(item.positionName);
-      
-      if (workType) {
-        // СВОРАЧИВАЕМ ВСЕ доходы и расходы по умолчанию
-        initialCollapsed.add(`${workType}_${basePositionName}_Доходы`);
-        initialCollapsed.add(`${workType}_${basePositionName}_Расходы`);
-      }
-    });
-    
-    return initialCollapsed;
-  });
+  // ИСПРАВЛЕНИЕ: Доходы/расходы ВСЕГДА свернуты по умолчанию
+  const [collapsedIncomeExpense, setCollapsedIncomeExpense] = useState<Set<string>>(new Set());
   
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -84,27 +67,27 @@ const PositionCard: React.FC<PositionCardProps> = ({
     }
   }, [isEditing]);
 
-  // ИСПРАВЛЕНИЕ: Эффект для автоматического сворачивания ВСЕХ доходов/расходов при добавлении новых элементов
+  // ИСПРАВЛЕНИЕ: Эффект для автоматического сворачивания ВСЕХ доходов/расходов
   useEffect(() => {
-    // Когда в позицию добавляются новые элементы, автоматически сворачиваем ВСЕ доходы/расходы
+    // Собираем ВСЕ возможные ключи доходов/расходов из текущих элементов позиции
     const allIncomeExpenseKeys = new Set<string>();
 
-    // Собираем ВСЕ ключи доходов/расходов
     position.items.forEach(item => {
       const workType = item.workType.trim();
       const basePositionName = getBasePositionName(item.positionName);
       
       if (workType) {
+        // Добавляем ключи для ВСЕХ доходов и расходов
         allIncomeExpenseKeys.add(`${workType}_${basePositionName}_Доходы`);
         allIncomeExpenseKeys.add(`${workType}_${basePositionName}_Расходы`);
       }
     });
 
-    // СВОРАЧИВАЕМ ВСЕ доходы/расходы (и существующие, и новые)
+    // ПРИНУДИТЕЛЬНО сворачиваем ВСЕ доходы/расходы
     setCollapsedIncomeExpense(allIncomeExpenseKeys);
 
-    // НЕ сворачиваем статьи работ и позиции - они остаются развернутыми
-  }, [position.items.length]); // Срабатывает при изменении количества элементов
+    console.log('🔽 Автоматически сворачиваем доходы/расходы:', Array.from(allIncomeExpenseKeys));
+  }, [position.items]); // Срабатывает при любом изменении элементов позиции
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
