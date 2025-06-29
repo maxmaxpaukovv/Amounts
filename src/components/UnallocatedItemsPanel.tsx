@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { RepairItem, GroupedRepairItem } from '../types';
 import { GroupedRepairItemCard } from './GroupedRepairItemCard';
 import { groupByBasePositionName } from '../utils/groupingUtils';
-import { Package2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Minimize2, Maximize2, TrendingUp, TrendingDown, RussianRuble as Ruble } from 'lucide-react';
+import { Package2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Minimize2, Maximize2, TrendingUp, TrendingDown, RussianRuble as Ruble, Plus } from 'lucide-react';
 
 interface UnallocatedItemsPanelProps {
   items: RepairItem[];
@@ -15,6 +15,7 @@ interface UnallocatedItemsPanelProps {
   totalUnallocatedCount?: number;
   onIncreaseQuantity: (item: GroupedRepairItem) => void;
   onCreatePositionFromGroup?: (item: GroupedRepairItem) => void;
+  onAddNewItem?: (templateItem: RepairItem, newName: string) => void;
 }
 
 interface SalaryGoodsGroup {
@@ -39,7 +40,8 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
   searchQuery = '',
   totalUnallocatedCount = 0,
   onIncreaseQuantity,
-  onCreatePositionFromGroup
+  onCreatePositionFromGroup,
+  onAddNewItem
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -47,6 +49,11 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
   // ИСПРАВЛЕНИЕ: Автоматически сворачиваем все группы при появлении новых данных
   const [collapsedSalaryGoods, setCollapsedSalaryGoods] = useState<Set<string>>(new Set());
   const [collapsedWorkTypes, setCollapsedWorkTypes] = useState<Set<string>>(new Set());
+
+  // Состояние для модального окна добавления новой карточки
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedTemplateItem, setSelectedTemplateItem] = useState<RepairItem | null>(null);
+  const [newItemName, setNewItemName] = useState('');
 
   // Эффект для автоматического сворачивания всех групп при импорте данных
   useEffect(() => {
@@ -187,6 +194,33 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
       // Иначе сворачиваем все
       setCollapsedSalaryGoods(new Set(allSalaryGoods));
     }
+  };
+
+  // Функция для открытия модального окна добавления новой карточки
+  const handleAddNewItem = (templateItem: RepairItem) => {
+    setSelectedTemplateItem(templateItem);
+    setNewItemName('');
+    setShowAddModal(true);
+  };
+
+  // Функция для создания новой карточки
+  const handleCreateNewItem = () => {
+    if (!selectedTemplateItem || !newItemName.trim()) return;
+    
+    if (onAddNewItem) {
+      onAddNewItem(selectedTemplateItem, newItemName.trim());
+    }
+    
+    setShowAddModal(false);
+    setSelectedTemplateItem(null);
+    setNewItemName('');
+  };
+
+  // Функция для отмены создания новой карточки
+  const handleCancelAddItem = () => {
+    setShowAddModal(false);
+    setSelectedTemplateItem(null);
+    setNewItemName('');
   };
 
   // Функция для получения доходов и расходов из группы
@@ -337,25 +371,54 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
                     <div className="bg-white">
                       {salaryGoodsGroup.workTypeGroups.map((workTypeGroup) => (
                         <div key={`${salaryGoodsGroup.salaryGoods}_${workTypeGroup.workType}`} className="border-b border-gray-200 last:border-b-0">
-                          {/* Заголовок статьи работ */}
-                          <button
-                            onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
-                            className="w-full pl-6 pr-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"
-                          >
-                            <div className="flex items-center space-x-2">
+                          {/* Заголовок статьи работ с кнопкой добавления */}
+                          <div className="w-full pl-6 pr-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors">
+                            <button
+                              onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
+                              className="flex items-center space-x-2 flex-1"
+                            >
                               <span className="font-medium text-gray-900 text-sm">
                                 {workTypeGroup.workType}
                               </span>
                               <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
                                 {workTypeGroup.items.length}
                               </span>
+                            </button>
+                            
+                            <div className="flex items-center space-x-2">
+                              {/* Кнопка добавления новой карточки */}
+                              {workTypeGroup.items.length > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Берем первый элемент группы как шаблон
+                                    const templateItem = items.find(item => 
+                                      workTypeGroup.items[0].groupedIds.includes(item.id)
+                                    );
+                                    if (templateItem) {
+                                      handleAddNewItem(templateItem);
+                                    }
+                                  }}
+                                  className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                  title="Добавить новую карточку в эту группу"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              )}
+                              
+                              {/* Кнопка сворачивания */}
+                              <button
+                                onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
+                                className="p-1 text-gray-500 hover:bg-gray-200 rounded transition-colors"
+                              >
+                                {workTypeGroup.isCollapsed ? (
+                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                ) : (
+                                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                                )}
+                              </button>
                             </div>
-                            {workTypeGroup.isCollapsed ? (
-                              <ChevronDown className="w-4 h-4 text-gray-500" />
-                            ) : (
-                              <ChevronUp className="w-4 h-4 text-gray-500" />
-                            )}
-                          </button>
+                          </div>
                           
                           {/* Элементы статьи работ */}
                           {!workTypeGroup.isCollapsed && (
@@ -575,6 +638,62 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Модальное окно для добавления новой карточки */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Добавить новую карточку
+            </h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Название новой позиции:
+              </label>
+              <input
+                type="text"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder="Например: Оплата труда обмотчика"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autoFocus
+              />
+            </div>
+            
+            {selectedTemplateItem && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">Шаблон:</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {selectedTemplateItem.analytics8}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Статья работ: {selectedTemplateItem.workType}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Категория: {selectedTemplateItem.salaryGoods}
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={handleCancelAddItem}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleCreateNewItem}
+                disabled={!newItemName.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                Создать
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

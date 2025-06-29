@@ -258,6 +258,37 @@ function App() {
     }
   };
 
+  // Функция для добавления новой карточки на основе шаблона
+  const handleAddNewItem = (templateItem: RepairItem, newName: string) => {
+    // Генерируем новый ID
+    const newId = `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Создаем новую карточку на основе шаблона
+    const newItem: RepairItem = {
+      ...templateItem, // Копируем все свойства шаблона
+      id: newId,
+      uniqueKey: `${newId}-${newName.toLowerCase().replace(/\s+/g, '-')}`,
+      positionName: `${newName}_ID_${newId}`,
+      analytics8: newName,
+      // Обнуляем финансовые данные для новой карточки
+      revenue: 0,
+      sumWithoutVAT: 0,
+      vatAmount: 0,
+      quantity: 1
+    };
+
+    console.log('🆕 Создание новой карточки:', {
+      templateId: templateItem.id,
+      newId: newItem.id,
+      newName,
+      workType: newItem.workType,
+      salaryGoods: newItem.salaryGoods
+    });
+
+    // Добавляем новую карточку в неразмещенные
+    setUnallocatedItems(prevItems => [...prevItems, newItem]);
+  };
+
   // Обработка изменения количества в позиции
   const handleQuantityChange = (positionId: string, groupedItem: GroupedRepairItem, newQuantity: number) => {
     const currentQuantity = groupedItem.groupedIds.length;
@@ -524,6 +555,7 @@ function App() {
           totalUnallocatedCount={unallocatedItems.length}
           onIncreaseQuantity={handleIncreaseQuantityUnallocated}
           onCreatePositionFromGroup={createPositionFromGroup}
+          onAddNewItem={handleAddNewItem}
         />
 
         {/* Right Content Area - Independent scroll */}
