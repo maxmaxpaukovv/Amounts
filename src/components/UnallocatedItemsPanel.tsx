@@ -277,6 +277,28 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
     setWireTemplateItem(null);
   };
 
+  // ИСПРАВЛЕННАЯ функция для проверки, является ли группа "товарами"
+  const isGoodsGroup = (salaryGoods: string): boolean => {
+    const normalizedSalaryGoods = salaryGoods.toLowerCase().trim();
+    console.log('🔍 Проверка группы товаров:', {
+      salaryGoods,
+      normalizedSalaryGoods,
+      isGoods: normalizedSalaryGoods.includes('товар')
+    });
+    return normalizedSalaryGoods.includes('товар');
+  };
+
+  // ИСПРАВЛЕННАЯ функция для проверки, является ли группа "зарплатой"
+  const isSalaryGroup = (salaryGoods: string): boolean => {
+    const normalizedSalaryGoods = salaryGoods.toLowerCase().trim();
+    console.log('🔍 Проверка группы зарплаты:', {
+      salaryGoods,
+      normalizedSalaryGoods,
+      isSalary: normalizedSalaryGoods.includes('зарплата')
+    });
+    return normalizedSalaryGoods.includes('зарплата');
+  };
+
   // Функция для получения доходов и расходов из группы
   const getIncomeExpenseFromGroup = (groupedItem: GroupedRepairItem, originalItems: RepairItem[]) => {
     // Находим все исходные элементы группы
@@ -398,231 +420,247 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
           ) : (
             <div className="space-y-4">
               {/* Группы по Зарплата/Товары */}
-              {groupedItems.salaryGoodsGroups.map((salaryGoodsGroup) => (
-                <div key={salaryGoodsGroup.salaryGoods} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Заголовок группы Зарплата/Товары */}
-                  <button
-                    onClick={() => toggleSalaryGoodsCollapse(salaryGoodsGroup.salaryGoods)}
-                    className="w-full px-3 py-2 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-between text-left transition-colors"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium text-indigo-900 text-sm">
-                        {salaryGoodsGroup.salaryGoods}
-                      </span>
-                      <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                        {salaryGoodsGroup.workTypeGroups.reduce((sum, wg) => sum + wg.items.length, 0)}
-                      </span>
-                    </div>
-                    {salaryGoodsGroup.isCollapsed ? (
-                      <ChevronDown className="w-4 h-4 text-indigo-500" />
-                    ) : (
-                      <ChevronUp className="w-4 h-4 text-indigo-500" />
-                    )}
-                  </button>
-                  
-                  {/* Группы по статье работ внутри Зарплата/Товары */}
-                  {!salaryGoodsGroup.isCollapsed && (
-                    <div className="bg-white">
-                      {salaryGoodsGroup.workTypeGroups.map((workTypeGroup) => (
-                        <div key={`${salaryGoodsGroup.salaryGoods}_${workTypeGroup.workType}`} className="border-b border-gray-200 last:border-b-0">
-                          {/* Заголовок статьи работ с кнопками добавления */}
-                          <div className="w-full pl-6 pr-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors">
-                            <button
-                              onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
-                              className="flex items-center space-x-2 flex-1"
-                            >
-                              <span className="font-medium text-gray-900 text-sm">
-                                {workTypeGroup.workType}
-                              </span>
-                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                {workTypeGroup.items.length}
-                              </span>
-                            </button>
-                            
-                            <div className="flex items-center space-x-2">
-                              {/* Кнопки добавления новых карточек */}
-                              {workTypeGroup.items.length > 0 && (
-                                <>
-                                  {/* Кнопка добавления обычной карточки */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Берем первый элемент группы как шаблон
-                                      const templateItem = items.find(item => 
-                                        workTypeGroup.items[0].groupedIds.includes(item.id)
-                                      );
-                                      if (templateItem) {
-                                        handleAddNewItem(templateItem);
-                                      }
-                                    }}
-                                    className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                                    title="Добавить новую карточку в эту группу"
-                                  >
-                                    <Plus className="w-4 h-4" />
-                                  </button>
-                                  
-                                  {/* Кнопка добавления карточки сотрудника (только для зарплаты) */}
-                                  {salaryGoodsGroup.salaryGoods.toLowerCase().includes('зарплата') && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Берем первый элемент группы как шаблон
-                                        const templateItem = items.find(item => 
-                                          workTypeGroup.items[0].groupedIds.includes(item.id)
-                                        );
-                                        if (templateItem) {
-                                          handleAddEmployeeItem(templateItem);
-                                        }
-                                      }}
-                                      className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                                      title="Добавить сотрудника из справочника"
-                                    >
-                                      <User className="w-4 h-4" />
-                                    </button>
-                                  )}
-
-                                  {/* НОВАЯ кнопка добавления провода (только для товаров) */}
-                                  {salaryGoodsGroup.salaryGoods.toLowerCase().includes('товар') && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Берем первый элемент группы как шаблон
-                                        const templateItem = items.find(item => 
-                                          workTypeGroup.items[0].groupedIds.includes(item.id)
-                                        );
-                                        if (templateItem) {
-                                          handleAddWireItem(templateItem);
-                                        }
-                                      }}
-                                      className="p-1 text-orange-600 hover:bg-orange-100 rounded transition-colors"
-                                      title="Добавить провод из справочника"
-                                    >
-                                      <Cable className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                              
-                              {/* Кнопка сворачивания */}
+              {groupedItems.salaryGoodsGroups.map((salaryGoodsGroup) => {
+                const isGoods = isGoodsGroup(salaryGoodsGroup.salaryGoods);
+                const isSalary = isSalaryGroup(salaryGoodsGroup.salaryGoods);
+                
+                console.log('🎯 Рендер группы:', {
+                  salaryGoods: salaryGoodsGroup.salaryGoods,
+                  isGoods,
+                  isSalary
+                });
+                
+                return (
+                  <div key={salaryGoodsGroup.salaryGoods} className="border border-gray-200 rounded-lg overflow-hidden">
+                    {/* Заголовок группы Зарплата/Товары */}
+                    <button
+                      onClick={() => toggleSalaryGoodsCollapse(salaryGoodsGroup.salaryGoods)}
+                      className="w-full px-3 py-2 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-between text-left transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-indigo-900 text-sm">
+                          {salaryGoodsGroup.salaryGoods}
+                        </span>
+                        <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                          {salaryGoodsGroup.workTypeGroups.reduce((sum, wg) => sum + wg.items.length, 0)}
+                        </span>
+                      </div>
+                      {salaryGoodsGroup.isCollapsed ? (
+                        <ChevronDown className="w-4 h-4 text-indigo-500" />
+                      ) : (
+                        <ChevronUp className="w-4 h-4 text-indigo-500" />
+                      )}
+                    </button>
+                    
+                    {/* Группы по статье работ внутри Зарплата/Товары */}
+                    {!salaryGoodsGroup.isCollapsed && (
+                      <div className="bg-white">
+                        {salaryGoodsGroup.workTypeGroups.map((workTypeGroup) => (
+                          <div key={`${salaryGoodsGroup.salaryGoods}_${workTypeGroup.workType}`} className="border-b border-gray-200 last:border-b-0">
+                            {/* Заголовок статьи работ с кнопками добавления */}
+                            <div className="w-full pl-6 pr-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors">
                               <button
                                 onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
-                                className="p-1 text-gray-500 hover:bg-gray-200 rounded transition-colors"
+                                className="flex items-center space-x-2 flex-1"
                               >
-                                {workTypeGroup.isCollapsed ? (
-                                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                                ) : (
-                                  <ChevronUp className="w-4 h-4 text-gray-500" />
-                                )}
+                                <span className="font-medium text-gray-900 text-sm">
+                                  {workTypeGroup.workType}
+                                </span>
+                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                  {workTypeGroup.items.length}
+                                </span>
                               </button>
-                            </div>
-                          </div>
-                          
-                          {/* Элементы статьи работ */}
-                          {!workTypeGroup.isCollapsed && (
-                            <div className="bg-white space-y-2 p-2 pl-8">
-                              {workTypeGroup.items.map((groupedItem) => {
-                                const { hasIncome, hasExpense, totalIncome, totalExpense } = getIncomeExpenseFromGroup(groupedItem, items);
-                                const isBeingDragged = draggedItem?.groupedIds.some(id => groupedItem.groupedIds.includes(id));
-                                
-                                return (
-                                  <div 
-                                    key={groupedItem.id} 
-                                    className={`
-                                      border border-gray-200 rounded-lg overflow-hidden cursor-move transition-all duration-200
-                                      ${isBeingDragged 
-                                        ? 'opacity-50 border-blue-300 shadow-lg transform scale-105' 
-                                        : 'hover:border-blue-300 hover:shadow-md'
-                                      }
-                                    `}
-                                    draggable={true}
-                                    onDragStart={(e) => handleGroupDragStart(e, groupedItem)}
-                                  >
-                                    {/* Заголовок позиции */}
-                                    <div className="bg-gray-50 px-3 py-2 flex items-center justify-between">
-                                      <div className="flex items-center space-x-2">
-                                        <span className="font-medium text-gray-900 text-sm">
-                                          {groupedItem.positionName}
-                                        </span>
-                                        <div className="flex items-center space-x-1">
-                                          {hasIncome && (
-                                            <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                              Доходы
-                                            </span>
-                                          )}
-                                          {hasExpense && (
-                                            <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                              Расходы
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      
-                                      {/* Кнопка создания позиции */}
+                              
+                              <div className="flex items-center space-x-2">
+                                {/* Кнопки добавления новых карточек */}
+                                {workTypeGroup.items.length > 0 && (
+                                  <>
+                                    {/* Кнопка добавления обычной карточки */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Берем первый элемент группы как шаблон
+                                        const templateItem = items.find(item => 
+                                          workTypeGroup.items[0].groupedIds.includes(item.id)
+                                        );
+                                        if (templateItem) {
+                                          handleAddNewItem(templateItem);
+                                        }
+                                      }}
+                                      className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                      title="Добавить новую карточку в эту группу"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                    
+                                    {/* Кнопка добавления карточки сотрудника (только для зарплаты) */}
+                                    {isSalary && (
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          if (onCreatePositionFromGroup) {
-                                            onCreatePositionFromGroup(groupedItem);
+                                          console.log('🔘 Клик по кнопке сотрудника для группы:', salaryGoodsGroup.salaryGoods);
+                                          // Берем первый элемент группы как шаблон
+                                          const templateItem = items.find(item => 
+                                            workTypeGroup.items[0].groupedIds.includes(item.id)
+                                          );
+                                          if (templateItem) {
+                                            handleAddEmployeeItem(templateItem);
                                           }
                                         }}
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors group bg-white shadow-sm border border-gray-200"
-                                        title="Создать позицию из этой группы"
+                                        className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                        title="Добавить сотрудника из справочника"
                                       >
-                                        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                                        <User className="w-4 h-4" />
                                       </button>
-                                    </div>
-                                    
-                                    {/* Содержимое позиции */}
-                                    <div className="bg-white">
-                                      {/* Показываем доходы и расходы */}
-                                      <div className="p-3 space-y-2">
-                                        {hasIncome && (
-                                          <div className="flex items-center justify-between text-sm">
-                                            <div className="flex items-center space-x-2">
-                                              <TrendingUp className="w-4 h-4 text-green-600" />
-                                              <span className="text-green-700 font-medium">Доходы</span>
-                                            </div>
-                                            <span className="text-green-700 font-bold">
-                                              {totalIncome.toLocaleString('ru-RU')} ₽
-                                            </span>
-                                          </div>
-                                        )}
-                                        
-                                        {hasExpense && (
-                                          <div className="flex items-center justify-between text-sm">
-                                            <div className="flex items-center space-x-2">
-                                              <TrendingDown className="w-4 h-4 text-red-600" />
-                                              <span className="text-red-700 font-medium">Расходы</span>
-                                            </div>
-                                            <span className="text-red-700 font-bold">
-                                              {totalExpense.toLocaleString('ru-RU')} ₽
-                                            </span>
-                                          </div>
-                                        )}
-                                        
-                                        {/* Итого */}
-                                        <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
-                                          <div className="flex items-center space-x-2">
-                                            <Ruble className="w-4 h-4 text-blue-600" />
-                                            <span className="text-blue-700 font-medium">Итого</span>
-                                          </div>
-                                          <span className="text-blue-700 font-bold">
-                                            {(totalIncome - totalExpense).toLocaleString('ru-RU')} ₽
+                                    )}
+
+                                    {/* ИСПРАВЛЕННАЯ кнопка добавления провода (только для товаров) */}
+                                    {isGoods && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log('🔌 Клик по кнопке провода для группы:', salaryGoodsGroup.salaryGoods);
+                                          // Берем первый элемент группы как шаблон
+                                          const templateItem = items.find(item => 
+                                            workTypeGroup.items[0].groupedIds.includes(item.id)
+                                          );
+                                          if (templateItem) {
+                                            console.log('🎯 Найден шаблон для провода:', templateItem);
+                                            handleAddWireItem(templateItem);
+                                          } else {
+                                            console.warn('❌ Не найден шаблон для провода');
+                                          }
+                                        }}
+                                        className="p-1 text-orange-600 hover:bg-orange-100 rounded transition-colors"
+                                        title="Добавить провод из справочника"
+                                      >
+                                        <Cable className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                                
+                                {/* Кнопка сворачивания */}
+                                <button
+                                  onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
+                                  className="p-1 text-gray-500 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                  {workTypeGroup.isCollapsed ? (
+                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                  ) : (
+                                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Элементы статьи работ */}
+                            {!workTypeGroup.isCollapsed && (
+                              <div className="bg-white space-y-2 p-2 pl-8">
+                                {workTypeGroup.items.map((groupedItem) => {
+                                  const { hasIncome, hasExpense, totalIncome, totalExpense } = getIncomeExpenseFromGroup(groupedItem, items);
+                                  const isBeingDragged = draggedItem?.groupedIds.some(id => groupedItem.groupedIds.includes(id));
+                                  
+                                  return (
+                                    <div 
+                                      key={groupedItem.id} 
+                                      className={`
+                                        border border-gray-200 rounded-lg overflow-hidden cursor-move transition-all duration-200
+                                        ${isBeingDragged 
+                                          ? 'opacity-50 border-blue-300 shadow-lg transform scale-105' 
+                                          : 'hover:border-blue-300 hover:shadow-md'
+                                        }
+                                      `}
+                                      draggable={true}
+                                      onDragStart={(e) => handleGroupDragStart(e, groupedItem)}
+                                    >
+                                      {/* Заголовок позиции */}
+                                      <div className="bg-gray-50 px-3 py-2 flex items-center justify-between">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="font-medium text-gray-900 text-sm">
+                                            {groupedItem.positionName}
                                           </span>
+                                          <div className="flex items-center space-x-1">
+                                            {hasIncome && (
+                                              <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                Доходы
+                                              </span>
+                                            )}
+                                            {hasExpense && (
+                                              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                                Расходы
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Кнопка создания позиции */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (onCreatePositionFromGroup) {
+                                              onCreatePositionFromGroup(groupedItem);
+                                            }
+                                          }}
+                                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors group bg-white shadow-sm border border-gray-200"
+                                          title="Создать позицию из этой группы"
+                                        >
+                                          <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                                        </button>
+                                      </div>
+                                      
+                                      {/* Содержимое позиции */}
+                                      <div className="bg-white">
+                                        {/* Показываем доходы и расходы */}
+                                        <div className="p-3 space-y-2">
+                                          {hasIncome && (
+                                            <div className="flex items-center justify-between text-sm">
+                                              <div className="flex items-center space-x-2">
+                                                <TrendingUp className="w-4 h-4 text-green-600" />
+                                                <span className="text-green-700 font-medium">Доходы</span>
+                                              </div>
+                                              <span className="text-green-700 font-bold">
+                                                {totalIncome.toLocaleString('ru-RU')} ₽
+                                              </span>
+                                            </div>
+                                          )}
+                                          
+                                          {hasExpense && (
+                                            <div className="flex items-center justify-between text-sm">
+                                              <div className="flex items-center space-x-2">
+                                                <TrendingDown className="w-4 h-4 text-red-600" />
+                                                <span className="text-red-700 font-medium">Расходы</span>
+                                              </div>
+                                              <span className="text-red-700 font-bold">
+                                                {totalExpense.toLocaleString('ru-RU')} ₽
+                                              </span>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Итого */}
+                                          <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
+                                            <div className="flex items-center space-x-2">
+                                              <Ruble className="w-4 h-4 text-blue-600" />
+                                              <span className="text-blue-700 font-medium">Итого</span>
+                                            </div>
+                                            <span className="text-blue-700 font-bold">
+                                              {(totalIncome - totalExpense).toLocaleString('ru-RU')} ₽
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
               {/* Элементы без Зарплата/Товары */}
               {groupedItems.itemsWithoutSalaryGoods.length > 0 && (
