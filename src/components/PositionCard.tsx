@@ -461,15 +461,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
                       </span>
                       <div className="flex items-center space-x-1">
                         {allIncomeItems.length > 0 && (
-                          <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium flex items-center space-x-1">
-                            <TrendingUp className="w-3 h-3" />
-                            <span>{allIncomeItems.length}</span>
+                          <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                            {allIncomeItems.length}
                           </span>
                         )}
                         {allExpenseItems.length > 0 && (
-                          <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium flex items-center space-x-1">
-                            <TrendingDown className="w-3 h-3" />
-                            <span>{allExpenseItems.length}</span>
+                          <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                            {allExpenseItems.length}
                           </span>
                         )}
                       </div>
@@ -539,15 +537,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                 </span>
                                 <div className="flex items-center space-x-1">
                                   {incomeItems.length > 0 && (
-                                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium flex items-center space-x-1">
-                                      <TrendingUp className="w-3 h-3" />
-                                      <span>{incomeItems.length}</span>
+                                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                      {incomeItems.length}
                                     </span>
                                   )}
                                   {expenseItems.length > 0 && (
-                                    <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium flex items-center space-x-1">
-                                      <TrendingDown className="w-3 h-3" />
-                                      <span>{expenseItems.length}</span>
+                                    <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                      {expenseItems.length}
                                     </span>
                                   )}
                                 </div>
