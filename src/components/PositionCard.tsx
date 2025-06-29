@@ -453,10 +453,10 @@ const PositionCard: React.FC<PositionCardProps> = ({
               
               return (
                 <div key={workTypeGroup.workType} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Заголовок статьи работ с расчетами - ЦВЕТОВАЯ ЗАЛИВКА ТОЛЬКО ЗДЕСЬ */}
-                  <div className="w-full px-3 py-2 bg-purple-100 hover:bg-purple-200 flex items-center justify-between transition-colors">
+                  {/* ИСПРАВЛЕНИЕ: Заголовок статьи работ теперь СИНИЙ вместо фиолетового */}
+                  <div className="w-full px-3 py-2 bg-blue-100 hover:bg-blue-200 flex items-center justify-between transition-colors">
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium text-purple-900 text-sm">
+                      <span className="font-medium text-blue-900 text-sm">
                         {workTypeGroup.workType}
                       </span>
                       <div className="flex items-center space-x-1">
@@ -493,8 +493,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
                           </div>
                         )}
                         <div className="flex items-center space-x-1">
-                          <Ruble className="w-3 h-3 text-purple-600" />
-                          <span className="text-purple-700 font-bold">
+                          <Ruble className="w-3 h-3 text-blue-600" />
+                          <span className="text-blue-700 font-bold">
                             {workTypeTotal.toLocaleString('ru-RU')} ₽
                           </span>
                         </div>
@@ -503,7 +503,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                       {/* КНОПКА СВОРАЧИВАНИЯ ГРУППЫ */}
                       <button
                         onClick={() => toggleWorkTypeCollapse(workTypeGroup.workType)}
-                        className="p-1 text-purple-600 hover:bg-purple-300 rounded transition-colors"
+                        className="p-1 text-blue-600 hover:bg-blue-300 rounded transition-colors"
                         title={workTypeGroup.isCollapsed ? 'Развернуть группу' : 'Свернуть группу'}
                       >
                         {workTypeGroup.isCollapsed ? (
