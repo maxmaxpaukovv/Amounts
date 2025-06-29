@@ -48,3 +48,14 @@ export interface DragItem {
   item: RepairItem;
   fromPositionId?: string;
 }
+
+// Новый интерфейс для сотрудников
+export interface Employee {
+  id: string;
+  name: string;
+  hourly_rate: number;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

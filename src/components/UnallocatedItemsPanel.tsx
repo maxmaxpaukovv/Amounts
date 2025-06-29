@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { RepairItem, GroupedRepairItem } from '../types';
+import { RepairItem, GroupedRepairItem, Employee } from '../types';
 import { GroupedRepairItemCard } from './GroupedRepairItemCard';
+import { EmployeeSelector } from './EmployeeSelector';
 import { groupByBasePositionName } from '../utils/groupingUtils';
 import { Package2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Minimize2, Maximize2, TrendingUp, TrendingDown, RussianRuble as Ruble, Plus } from 'lucide-react';
 
@@ -16,6 +17,7 @@ interface UnallocatedItemsPanelProps {
   onIncreaseQuantity: (item: GroupedRepairItem) => void;
   onCreatePositionFromGroup?: (item: GroupedRepairItem) => void;
   onAddNewItem?: (templateItem: RepairItem, newName: string) => void;
+  onAddEmployeeItem?: (templateItem: RepairItem, employee: Employee, hours: number) => void;
 }
 
 interface SalaryGoodsGroup {
@@ -41,7 +43,8 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
   totalUnallocatedCount = 0,
   onIncreaseQuantity,
   onCreatePositionFromGroup,
-  onAddNewItem
+  onAddNewItem,
+  onAddEmployeeItem
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -54,6 +57,10 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedTemplateItem, setSelectedTemplateItem] = useState<RepairItem | null>(null);
   const [newItemName, setNewItemName] = useState('');
+
+  // Состояние для выбора сотрудника
+  const [showEmployeeSelector, setShowEmployeeSelector] = useState(false);
+  const [employeeTemplateItem, setEmployeeTemplateItem] = useState<RepairItem | null>(null);
 
   // Эффект для автоматического сворачивания всех групп при импорте данных
   useEffect(() => {
@@ -223,6 +230,27 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
     setNewItemName('');
   };
 
+  // Функция для открытия выбора сотрудника
+  const handleAddEmployeeItem = (templateItem: RepairItem) => {
+    setEmployeeTemplateItem(templateItem);
+    setShowEmployeeSelector(true);
+  };
+
+  // Функция для создания карточки сотрудника
+  const handleEmployeeSelected = (employee: Employee, hours: number) => {
+    if (!employeeTemplateItem || !onAddEmployeeItem) return;
+    
+    onAddEmployeeItem(employeeTemplateItem, employee, hours);
+    setShowEmployeeSelector(false);
+    setEmployeeTemplateItem(null);
+  };
+
+  // Функция для отмены выбора сотрудника
+  const handleCancelEmployeeSelection = () => {
+    setShowEmployeeSelector(false);
+    setEmployeeTemplateItem(null);
+  };
+
   // Функция для получения доходов и расходов из группы
   const getIncomeExpenseFromGroup = (groupedItem: GroupedRepairItem, originalItems: RepairItem[]) => {
     // Находим все исходные элементы группы
@@ -371,7 +399,7 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
                     <div className="bg-white">
                       {salaryGoodsGroup.workTypeGroups.map((workTypeGroup) => (
                         <div key={`${salaryGoodsGroup.salaryGoods}_${workTypeGroup.workType}`} className="border-b border-gray-200 last:border-b-0">
-                          {/* Заголовок статьи работ с кнопкой добавления */}
+                          {/* Заголовок статьи работ с кнопками добавления */}
                           <div className="w-full pl-6 pr-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors">
                             <button
                               onClick={() => toggleWorkTypeCollapse(salaryGoodsGroup.salaryGoods, workTypeGroup.workType)}
@@ -386,24 +414,47 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
                             </button>
                             
                             <div className="flex items-center space-x-2">
-                              {/* Кнопка добавления новой карточки */}
+                              {/* Кнопки добавления новых карточек */}
                               {workTypeGroup.items.length > 0 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Берем первый элемент группы как шаблон
-                                    const templateItem = items.find(item => 
-                                      workTypeGroup.items[0].groupedIds.includes(item.id)
-                                    );
-                                    if (templateItem) {
-                                      handleAddNewItem(templateItem);
-                                    }
-                                  }}
-                                  className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                                  title="Добавить новую карточку в эту группу"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </button>
+                                <>
+                                  {/* Кнопка добавления обычной карточки */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Берем первый элемент группы как шаблон
+                                      const templateItem = items.find(item => 
+                                        workTypeGroup.items[0].groupedIds.includes(item.id)
+                                      );
+                                      if (templateItem) {
+                                        handleAddNewItem(templateItem);
+                                      }
+                                    }}
+                                    className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                    title="Добавить новую карточку в эту группу"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                  
+                                  {/* Кнопка добавления карточки сотрудника (только для зарплаты) */}
+                                  {salaryGoodsGroup.salaryGoods.toLowerCase().includes('зарплата') && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Берем первый элемент группы как шаблон
+                                        const templateItem = items.find(item => 
+                                          workTypeGroup.items[0].groupedIds.includes(item.id)
+                                        );
+                                        if (templateItem) {
+                                          handleAddEmployeeItem(templateItem);
+                                        }
+                                      }}
+                                      className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                      title="Добавить сотрудника из справочника"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </>
                               )}
                               
                               {/* Кнопка сворачивания */}
@@ -695,6 +746,16 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Модальное окно выбора сотрудника */}
+      {showEmployeeSelector && employeeTemplateItem && (
+        <EmployeeSelector
+          onSelect={handleEmployeeSelected}
+          onCancel={handleCancelEmployeeSelection}
+          templateWorkType={employeeTemplateItem.workType}
+          templateSalaryGoods={employeeTemplateItem.salaryGoods}
+        />
       )}
     </div>
   );

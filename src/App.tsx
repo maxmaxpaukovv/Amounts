@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RepairItem, Position, GroupedRepairItem } from './types';
+import { RepairItem, Position, GroupedRepairItem, Employee } from './types';
 import { UnallocatedItemsPanel } from './components/UnallocatedItemsPanel';
 import PositionCard from './components/PositionCard';
 import { ImportButton } from './components/ImportButton';
@@ -289,6 +289,46 @@ function App() {
     setUnallocatedItems(prevItems => [...prevItems, newItem]);
   };
 
+  // Функция для добавления карточки сотрудника из справочника
+  const handleAddEmployeeItem = (templateItem: RepairItem, employee: Employee, hours: number) => {
+    // Генерируем новый ID
+    const newId = `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Рассчитываем сумму
+    const totalAmount = employee.hourly_rate * hours;
+    const sumWithoutVAT = totalAmount; // Зарплата обычно без НДС
+    const vatAmount = 0; // НДС на зарплату не начисляется
+    
+    // Создаем новую карточку сотрудника
+    const newItem: RepairItem = {
+      ...templateItem, // Копируем все свойства шаблона
+      id: newId,
+      uniqueKey: `${newId}-${employee.name.toLowerCase().replace(/\s+/g, '-')}-${hours}h`,
+      positionName: `Оплата труда ${employee.name.toLowerCase()} (${hours} ч)_ID_${newId}`,
+      analytics8: `Оплата труда ${employee.name.toLowerCase()} (${hours} ч)`,
+      // Устанавливаем финансовые данные
+      revenue: -totalAmount, // Отрицательная сумма для расходов
+      sumWithoutVAT: -sumWithoutVAT,
+      vatAmount: -vatAmount,
+      quantity: hours,
+      incomeExpenseType: 'Расходы' // Зарплата - это расходы
+    };
+
+    console.log('👷 Создание карточки сотрудника:', {
+      templateId: templateItem.id,
+      newId: newItem.id,
+      employeeName: employee.name,
+      hours,
+      hourlyRate: employee.hourly_rate,
+      totalAmount,
+      workType: newItem.workType,
+      salaryGoods: newItem.salaryGoods
+    });
+
+    // Добавляем новую карточку в неразмещенные
+    setUnallocatedItems(prevItems => [...prevItems, newItem]);
+  };
+
   // Обработка изменения количества в позиции
   const handleQuantityChange = (positionId: string, groupedItem: GroupedRepairItem, newQuantity: number) => {
     const currentQuantity = groupedItem.groupedIds.length;
@@ -556,6 +596,7 @@ function App() {
           onIncreaseQuantity={handleIncreaseQuantityUnallocated}
           onCreatePositionFromGroup={createPositionFromGroup}
           onAddNewItem={handleAddNewItem}
+          onAddEmployeeItem={handleAddEmployeeItem}
         />
 
         {/* Right Content Area - Independent scroll */}
