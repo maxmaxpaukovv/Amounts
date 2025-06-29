@@ -75,16 +75,21 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
     const typeCheck = item.incomeExpenseType === 'Расходы';
     const categoryCheck = item.salaryGoods.toLowerCase().includes('зарплата');
     
+    const result = nameCheck && typeCheck && categoryCheck;
+    
     console.log('🔍 Проверка карточки сотрудника:', {
       positionName: item.positionName,
       analytics8: item.analytics8,
+      salaryGoods: item.salaryGoods,
+      incomeExpenseType: item.incomeExpenseType,
       nameCheck,
       typeCheck,
       categoryCheck,
-      isEmployee: nameCheck && typeCheck && categoryCheck
+      isEmployee: result,
+      fromPositionId
     });
     
-    return nameCheck && typeCheck && categoryCheck;
+    return result;
   };
 
   // УЛУЧШЕННАЯ функция для извлечения информации о сотруднике из названия позиции
@@ -269,17 +274,18 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
   const showCreateButton = !fromPositionId && onCreatePosition;
   const isExpense = item.incomeExpenseType === 'Расходы';
   const showPriceEdit = fromPositionId && onPriceChange;
-  const showHoursEdit = fromPositionId && onEmployeeHoursChange && isEmployeeCard();
+  const isEmployee = isEmployeeCard();
+  const showHoursEdit = fromPositionId && onEmployeeHoursChange && isEmployee;
   const employeeInfo = getEmployeeInfo();
   const hourlyRate = calculateHourlyRate();
-  const isEmployee = isEmployeeCard();
 
   console.log('🎯 Рендер карточки:', {
     positionName: item.positionName,
     isEmployee,
     showHoursEdit,
     employeeInfo,
-    fromPositionId
+    fromPositionId,
+    onEmployeeHoursChange: !!onEmployeeHoursChange
   });
 
   return (
@@ -439,7 +445,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
                 <span className={`text-lg font-bold ${isExpense ? 'text-red-600' : 'text-green-600'}`}>
                   {Math.abs(item.revenue).toLocaleString('ru-RU')}
                 </span>
-                {showPriceEdit && (
+                {showPriceEdit && !isEmployee && (
                   <button
                     onClick={handlePriceEdit}
                     className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
