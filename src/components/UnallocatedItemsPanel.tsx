@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { RepairItem, GroupedRepairItem } from '../types';
 import { GroupedRepairItemCard } from './GroupedRepairItemCard';
 import { groupByBasePositionName } from '../utils/groupingUtils';
@@ -43,8 +43,37 @@ export const UnallocatedItemsPanel: React.FC<UnallocatedItemsPanelProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  
+  // ИСПРАВЛЕНИЕ: Автоматически сворачиваем все группы при появлении новых данных
   const [collapsedSalaryGoods, setCollapsedSalaryGoods] = useState<Set<string>>(new Set());
   const [collapsedWorkTypes, setCollapsedWorkTypes] = useState<Set<string>>(new Set());
+
+  // Эффект для автоматического сворачивания всех групп при импорте данных
+  useEffect(() => {
+    if (items.length > 0) {
+      // Получаем все уникальные группы "Зарплата/Товары"
+      const salaryGoodsSet = new Set<string>();
+      const workTypeSet = new Set<string>();
+      
+      items.forEach(item => {
+        const salaryGoods = item.salaryGoods.trim();
+        const workType = item.workType.trim() || 'Без статьи работ';
+        
+        if (salaryGoods) {
+          salaryGoodsSet.add(salaryGoods);
+          workTypeSet.add(`${salaryGoods}_${workType}`);
+        }
+      });
+      
+      // Автоматически сворачиваем все группы при появлении данных
+      setCollapsedSalaryGoods(salaryGoodsSet);
+      setCollapsedWorkTypes(workTypeSet);
+    } else {
+      // Если данных нет, очищаем состояние сворачивания
+      setCollapsedSalaryGoods(new Set());
+      setCollapsedWorkTypes(new Set());
+    }
+  }, [items.length]); // Срабатывает при изменении количества элементов
 
   // Группируем по Зарплата/Товары -> Статья работ -> Базовое название позиции
   const groupedItems = useMemo(() => {
