@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { RepairItem, Position, GroupedRepairItem } from './types';
-import { sampleRepairData } from './data/sampleData';
 import { UnallocatedItemsPanel } from './components/UnallocatedItemsPanel';
 import PositionCard from './components/PositionCard';
 import { ImportButton } from './components/ImportButton';
@@ -12,7 +11,8 @@ import { getBasePositionName, groupSimilarItems, ungroupItems, groupByBasePositi
 import { Plus, Download, Settings, TrendingUp, TrendingDown } from 'lucide-react';
 
 function App() {
-  const [unallocatedItems, setUnallocatedItems] = useState<RepairItem[]>(sampleRepairData);
+  // ИСПРАВЛЕНИЕ: Убираем тестовые данные - начинаем с пустого массива
+  const [unallocatedItems, setUnallocatedItems] = useState<RepairItem[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [nextPositionNumber, setNextPositionNumber] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
