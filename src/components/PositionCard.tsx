@@ -15,6 +15,7 @@ interface PositionCardProps {
   onQuantityChange: (positionId: string, groupedItem: GroupedRepairItem, newQuantity: number) => void;
   unallocatedItems: RepairItem[];
   onPriceChange?: (positionId: string, itemId: string, newRevenue: number) => void;
+  onEmployeeHoursChange?: (positionId: string, itemId: string, newHours: number) => void;
 }
 
 interface WorkTypeGroup {
@@ -39,7 +40,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
   draggedItem,
   onQuantityChange,
   unallocatedItems,
-  onPriceChange
+  onPriceChange,
+  onEmployeeHoursChange
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(position.service);
@@ -151,6 +153,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const handlePriceChange = (itemId: string, newRevenue: number) => {
     if (onPriceChange) {
       onPriceChange(position.id, itemId, newRevenue);
+    }
+  };
+
+  // НОВАЯ функция для изменения количества часов сотрудника
+  const handleEmployeeHoursChange = (itemId: string, newHours: number) => {
+    if (onEmployeeHoursChange) {
+      onEmployeeHoursChange(position.id, itemId, newHours);
     }
   };
 
@@ -630,6 +639,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                             onQuantityChange={handleQuantityChange}
                                             maxAvailableQuantity={getMaxAvailableQuantity(groupedItem)}
                                             onPriceChange={handlePriceChange}
+                                            onEmployeeHoursChange={handleEmployeeHoursChange}
                                           />
                                         ))}
                                       </div>
@@ -681,6 +691,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                             onQuantityChange={handleQuantityChange}
                                             maxAvailableQuantity={getMaxAvailableQuantity(groupedItem)}
                                             onPriceChange={handlePriceChange}
+                                            onEmployeeHoursChange={handleEmployeeHoursChange}
                                           />
                                         ))}
                                       </div>
@@ -717,6 +728,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                       onQuantityChange={handleQuantityChange}
                       maxAvailableQuantity={getMaxAvailableQuantity(groupedItem)}
                       onPriceChange={handlePriceChange}
+                      onEmployeeHoursChange={handleEmployeeHoursChange}
                     />
                   ))}
                 </div>

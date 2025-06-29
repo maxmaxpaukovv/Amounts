@@ -211,6 +211,105 @@ function App() {
     );
   };
 
+  // НОВАЯ функция для изменения количества часов сотрудника
+  const handleEmployeeHoursChange = (positionId: string, itemId: string, newHours: number) => {
+    console.log('⏰ Изменение часов сотрудника:', {
+      positionId,
+      itemId,
+      newHours
+    });
+
+    setPositions(prevPositions => 
+      prevPositions.map(position => {
+        if (position.id === positionId) {
+          const updatedItems = position.items.map(item => {
+            if (item.id === itemId) {
+              // Проверяем, что это карточка сотрудника
+              const isEmployeeCard = item.positionName.toLowerCase().includes('оплата труда') && 
+                                   item.incomeExpenseType === 'Расходы' &&
+                                   item.salaryGoods.toLowerCase().includes('зарплата');
+              
+              if (!isEmployeeCard) {
+                console.warn('Попытка изменить часы для не-сотрудника:', item.positionName);
+                return item;
+              }
+
+              // Извлекаем информацию о сотруднике из названия позиции
+              const match = item.positionName.match(/оплата труда (\w+) \((\d+(?:\.\d+)?)\s*ч\)/i);
+              if (!match) {
+                console.warn('Не удалось извлечь информацию о сотруднике:', item.positionName);
+                return item;
+              }
+
+              const employeeName = match[1];
+              const oldHours = parseFloat(match[2]);
+              
+              // Рассчитываем ставку за час на основе текущих данных
+              const hourlyRate = oldHours > 0 ? Math.abs(item.revenue) / oldHours : 0;
+              
+              if (hourlyRate <= 0) {
+                console.warn('Некорректная ставка за час:', hourlyRate);
+                return item;
+              }
+
+              // Рассчитываем новую сумму
+              const newTotalAmount = hourlyRate * newHours;
+              const newRevenue = -newTotalAmount; // Отрицательная для расходов
+              const newSumWithoutVAT = newRevenue; // Зарплата обычно без НДС
+              const newVatAmount = 0; // НДС на зарплату не начисляется
+
+              // Обновляем название позиции с новым количеством часов
+              const newPositionName = item.positionName.replace(
+                /\((\d+(?:\.\d+)?)\s*ч\)/i,
+                `(${newHours} ч)`
+              );
+
+              // Обновляем analytics8 тоже
+              const newAnalytics8 = item.analytics8.replace(
+                /\((\d+(?:\.\d+)?)\s*ч\)/i,
+                `(${newHours} ч)`
+              );
+
+              console.log(`✅ Обновляем часы сотрудника ${employeeName}:`, {
+                oldHours,
+                newHours,
+                hourlyRate,
+                oldRevenue: item.revenue,
+                newRevenue,
+                oldPositionName: item.positionName,
+                newPositionName
+              });
+
+              return {
+                ...item,
+                positionName: newPositionName,
+                analytics8: newAnalytics8,
+                quantity: newHours,
+                revenue: newRevenue,
+                sumWithoutVAT: newSumWithoutVAT,
+                vatAmount: newVatAmount
+              };
+            }
+            
+            return item;
+          });
+
+          // Пересчитываем общие суммы позиции
+          const totals = recalculatePositionTotals(updatedItems);
+          
+          console.log('📊 Новые суммы позиции после изменения часов:', totals);
+          
+          return {
+            ...position,
+            items: updatedItems,
+            ...totals
+          };
+        }
+        return position;
+      })
+    );
+  };
+
   const updatePositionService = (positionId: string, newService: string) => {
     setPositions(positions.map(position => 
       position.id === positionId 
@@ -665,6 +764,7 @@ function App() {
                     onQuantityChange={handleQuantityChange}
                     unallocatedItems={unallocatedItems}
                     onPriceChange={handlePriceChange}
+                    onEmployeeHoursChange={handleEmployeeHoursChange}
                   />
                 ))}
               </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GroupedRepairItem } from '../types';
 import { QuantityControl } from './QuantityControl';
-import { Package, RussianRuble as Ruble, Calendar, Hash, Copy, Check, Tag, Users, ArrowRight, TrendingUp, TrendingDown, Edit3 } from 'lucide-react';
+import { Package, RussianRuble as Ruble, Calendar, Hash, Copy, Check, Tag, Users, ArrowRight, TrendingUp, TrendingDown, Edit3, Clock } from 'lucide-react';
 
 interface GroupedRepairItemCardProps {
   item: GroupedRepairItem;
@@ -14,6 +14,7 @@ interface GroupedRepairItemCardProps {
   maxAvailableQuantity?: number;
   onCreatePosition?: (item: GroupedRepairItem) => void;
   onPriceChange?: (itemId: string, newRevenue: number) => void;
+  onEmployeeHoursChange?: (itemId: string, newHours: number) => void;
 }
 
 export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
@@ -26,11 +27,14 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
   onQuantityChange,
   maxAvailableQuantity,
   onCreatePosition,
-  onPriceChange
+  onPriceChange,
+  onEmployeeHoursChange
 }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [editPriceValue, setEditPriceValue] = useState('');
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [editHoursValue, setEditHoursValue] = useState('');
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!isDraggable) return;
@@ -63,13 +67,41 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
     }
   };
 
+  // Функция для определения, является ли карточка карточкой сотрудника
+  const isEmployeeCard = (): boolean => {
+    return item.positionName.toLowerCase().includes('оплата труда') && 
+           item.incomeExpenseType === 'Расходы' &&
+           item.salaryGoods.toLowerCase().includes('зарплата');
+  };
+
+  // Функция для извлечения информации о сотруднике из названия позиции
+  const getEmployeeInfo = () => {
+    const match = item.positionName.match(/оплата труда (\w+) \((\d+(?:\.\d+)?)\s*ч\)/i);
+    if (match) {
+      return {
+        employeeName: match[1],
+        hours: parseFloat(match[2])
+      };
+    }
+    return null;
+  };
+
+  // Функция для расчета ставки за час на основе текущих данных
+  const calculateHourlyRate = (): number => {
+    const employeeInfo = getEmployeeInfo();
+    if (employeeInfo && employeeInfo.hours > 0) {
+      return Math.abs(item.revenue) / employeeInfo.hours;
+    }
+    return 0;
+  };
+
   // ИСПРАВЛЕННАЯ обработка редактирования цены для конкретного элемента
   const handlePriceEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onPriceChange || !fromPositionId) return;
     
     // Для сгруппированных элементов берем общую сумму
-    setEditPriceValue(item.revenue.toString());
+    setEditPriceValue(Math.abs(item.revenue).toString());
     setIsEditingPrice(true);
   };
 
@@ -92,11 +124,15 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
         // Для группы распределяем сумму поровну между элементами
         const revenuePerItem = newRevenue / item.groupedIds.length;
         item.groupedIds.forEach(itemId => {
-          onPriceChange(itemId, revenuePerItem);
+          // Для расходов делаем сумму отрицательной
+          const finalRevenue = item.incomeExpenseType === 'Расходы' ? -Math.abs(revenuePerItem) : revenuePerItem;
+          onPriceChange(itemId, finalRevenue);
         });
       } else {
         // Для одиночного элемента изменяем напрямую
-        onPriceChange(item.groupedIds[0], newRevenue);
+        // Для расходов делаем сумму отрицательной
+        const finalRevenue = item.incomeExpenseType === 'Расходы' ? -Math.abs(newRevenue) : newRevenue;
+        onPriceChange(item.groupedIds[0], finalRevenue);
       }
     } else {
       console.warn('Некорректное значение цены:', editPriceValue);
@@ -116,6 +152,57 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
     } else if (e.key === 'Escape') {
       e.preventDefault();
       handlePriceCancel();
+    }
+  };
+
+  // НОВАЯ функция для редактирования количества часов сотрудника
+  const handleHoursEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onEmployeeHoursChange || !fromPositionId || !isEmployeeCard()) return;
+    
+    const employeeInfo = getEmployeeInfo();
+    if (employeeInfo) {
+      setEditHoursValue(employeeInfo.hours.toString());
+      setIsEditingHours(true);
+    }
+  };
+
+  const handleHoursSave = () => {
+    if (!onEmployeeHoursChange || !fromPositionId || !isEmployeeCard()) return;
+    
+    const newHours = parseFloat(editHoursValue);
+    
+    console.log('⏰ Сохранение часов для сотрудника:', {
+      itemId: item.id,
+      groupedIds: item.groupedIds,
+      editHoursValue,
+      newHours,
+      isNaN: isNaN(newHours)
+    });
+    
+    if (!isNaN(newHours) && newHours > 0) {
+      // Изменяем количество часов для всех элементов группы
+      item.groupedIds.forEach(itemId => {
+        onEmployeeHoursChange(itemId, newHours);
+      });
+    } else {
+      console.warn('Некорректное значение часов:', editHoursValue);
+    }
+    setIsEditingHours(false);
+  };
+
+  const handleHoursCancel = () => {
+    setIsEditingHours(false);
+    setEditHoursValue('');
+  };
+
+  const handleHoursKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleHoursSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleHoursCancel();
     }
   };
 
@@ -142,6 +229,9 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
   const showCreateButton = !fromPositionId && onCreatePosition;
   const isExpense = item.incomeExpenseType === 'Расходы';
   const showPriceEdit = fromPositionId && onPriceChange;
+  const showHoursEdit = fromPositionId && onEmployeeHoursChange && isEmployeeCard();
+  const employeeInfo = getEmployeeInfo();
+  const hourlyRate = calculateHourlyRate();
 
   return (
     <div
@@ -156,6 +246,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
         ${!isDraggable ? 'cursor-default opacity-60' : ''}
         ${isGrouped ? 'border-l-4 border-l-orange-400' : ''}
         ${isExpense ? 'border-r-4 border-r-red-400' : ''}
+        ${isEmployeeCard() ? 'border-t-4 border-t-green-400' : ''}
       `}
     >
       {/* Индикатор группировки - перемещен в левый верхний угол */}
@@ -179,6 +270,14 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
         )}
         <span>{item.incomeExpenseType}</span>
       </div>
+
+      {/* Индикатор карточки сотрудника */}
+      {isEmployeeCard() && (
+        <div className={`absolute top-2 ${isGrouped ? 'left-32' : 'left-20'} flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium`}>
+          <Clock className="w-3 h-3" />
+          <span>Сотрудник</span>
+        </div>
+      )}
 
       {/* Кнопка создания позиции - теперь в правом верхнем углу */}
       {showCreateButton && (
@@ -205,7 +304,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
       )}
 
       {/* Основной контент с отступом сверху для кнопок */}
-      <div className={`${isGrouped || showCreateButton || showQuantityControl ? 'mt-8' : 'mt-6'}`}>
+      <div className={`${isGrouped || showCreateButton || showQuantityControl || isEmployeeCard() ? 'mt-8' : 'mt-6'}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-2 flex-1">
             <Package className="w-4 h-4 text-blue-600 flex-shrink-0" />
@@ -214,6 +313,54 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
             </span>
           </div>
         </div>
+        
+        {/* Информация о сотруднике (если это карточка сотрудника) */}
+        {isEmployeeCard() && employeeInfo && (
+          <div className="mb-3 p-2 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-green-600" />
+                <span className="font-medium text-green-800">{employeeInfo.employeeName}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {isEditingHours ? (
+                  <div className="flex items-center space-x-1">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      value={editHoursValue}
+                      onChange={(e) => setEditHoursValue(e.target.value)}
+                      onBlur={handleHoursSave}
+                      onKeyDown={handleHoursKeyDown}
+                      className="w-16 text-sm border border-gray-300 rounded px-1 py-0.5 text-center"
+                      autoFocus
+                    />
+                    <span className="text-green-700 text-xs">ч</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1">
+                    <span className="text-green-700 font-medium">{employeeInfo.hours} ч</span>
+                    {showHoursEdit && (
+                      <button
+                        onClick={handleHoursEdit}
+                        className="p-0.5 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                        title="Изменить количество часов"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            {hourlyRate > 0 && (
+              <div className="mt-1 text-xs text-green-600">
+                Ставка: {hourlyRate.toLocaleString('ru-RU')} ₽/час
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-1">
@@ -237,7 +384,7 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
             ) : (
               <div className="flex items-center space-x-1">
                 <span className={`text-lg font-bold ${isExpense ? 'text-red-600' : 'text-green-600'}`}>
-                  {item.revenue.toLocaleString('ru-RU')}
+                  {Math.abs(item.revenue).toLocaleString('ru-RU')}
                 </span>
                 {showPriceEdit && (
                   <button
@@ -258,10 +405,10 @@ export const GroupedRepairItemCard: React.FC<GroupedRepairItemCardProps> = ({
 
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <span>Без НДС: {item.sumWithoutVAT.toLocaleString('ru-RU')} ₽</span>
+            <span>Без НДС: {Math.abs(item.sumWithoutVAT).toLocaleString('ru-RU')} ₽</span>
           </div>
           <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <span>НДС: {item.vatAmount.toLocaleString('ru-RU')} ₽</span>
+            <span>НДС: {Math.abs(item.vatAmount).toLocaleString('ru-RU')} ₽</span>
           </div>
         </div>
         
