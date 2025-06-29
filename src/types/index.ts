@@ -49,25 +49,11 @@ export interface DragItem {
   fromPositionId?: string;
 }
 
-// Интерфейс для сотрудников
+// Новый интерфейс для сотрудников
 export interface Employee {
   id: string;
   name: string;
   hourly_rate: number;
-  description: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// Новый интерфейс для проводов
-export interface Wire {
-  id: string;
-  brand: string;
-  cross_section: number;
-  insulation_type: string;
-  voltage_rating: number;
-  price_per_meter: number;
   description: string;
   is_active: boolean;
   created_at: string;
