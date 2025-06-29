@@ -49,8 +49,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const [collapsedWorkTypes, setCollapsedWorkTypes] = useState<Set<string>>(new Set());
   const [collapsedPositions, setCollapsedPositions] = useState<Set<string>>(new Set());
   
-  // КАРДИНАЛЬНОЕ ИСПРАВЛЕНИЕ: Доходы/расходы ВСЕГДА свернуты
-  const [collapsedIncomeExpense, setCollapsedIncomeExpense] = useState<Set<string>>(new Set());
+  // ИСПРАВЛЕНИЕ: Доходы/расходы свернуты по умолчанию - используем инвертированную логику
+  const [expandedIncomeExpense, setExpandedIncomeExpense] = useState<Set<string>>(new Set());
   
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,35 +66,6 @@ const PositionCard: React.FC<PositionCardProps> = ({
       inputRef.current.select();
     }
   }, [isEditing]);
-
-  // КАРДИНАЛЬНОЕ ИСПРАВЛЕНИЕ: Принудительно сворачиваем ВСЕ доходы/расходы при ЛЮБОМ изменении
-  useEffect(() => {
-    console.log('🔄 Обновление состояния сворачивания для позиции:', position.id);
-    console.log('📊 Количество элементов в позиции:', position.items.length);
-    
-    // Собираем ВСЕ возможные ключи доходов/расходов
-    const allKeys = new Set<string>();
-    
-    position.items.forEach(item => {
-      const workType = item.workType.trim();
-      const basePositionName = getBasePositionName(item.positionName);
-      
-      if (workType) {
-        const incomeKey = `${workType}_${basePositionName}_Доходы`;
-        const expenseKey = `${workType}_${basePositionName}_Расходы`;
-        
-        allKeys.add(incomeKey);
-        allKeys.add(expenseKey);
-        
-        console.log('🔑 Добавляем ключи:', { incomeKey, expenseKey });
-      }
-    });
-    
-    console.log('🔽 ПРИНУДИТЕЛЬНО сворачиваем ВСЕ доходы/расходы:', Array.from(allKeys));
-    
-    // ПРИНУДИТЕЛЬНО устанавливаем состояние сворачивания
-    setCollapsedIncomeExpense(allKeys);
-  }, [position.items, position.id]); // Зависимость от items и id позиции
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -171,23 +142,24 @@ const PositionCard: React.FC<PositionCardProps> = ({
     setCollapsedPositions(newCollapsedPositions);
   };
 
-  // Функция для сворачивания/разворачивания доходов/расходов
+  // ИСПРАВЛЕННАЯ функция для сворачивания/разворачивания доходов/расходов
+  // Теперь используем ИНВЕРТИРОВАННУЮ логику: по умолчанию свернуто, в Set хранятся развернутые
   const toggleIncomeExpenseCollapse = (workType: string, positionName: string, incomeExpenseType: 'Доходы' | 'Расходы') => {
     const key = `${workType}_${positionName}_${incomeExpenseType}`;
-    const newCollapsedIncomeExpense = new Set(collapsedIncomeExpense);
+    const newExpandedIncomeExpense = new Set(expandedIncomeExpense);
     
     console.log('🔄 Переключение состояния для ключа:', key);
-    console.log('🔍 Текущее состояние свернуто:', newCollapsedIncomeExpense.has(key));
+    console.log('🔍 Текущее состояние развернуто:', newExpandedIncomeExpense.has(key));
     
-    if (newCollapsedIncomeExpense.has(key)) {
-      newCollapsedIncomeExpense.delete(key);
-      console.log('📖 Разворачиваем секцию:', key);
-    } else {
-      newCollapsedIncomeExpense.add(key);
+    if (newExpandedIncomeExpense.has(key)) {
+      newExpandedIncomeExpense.delete(key);
       console.log('📕 Сворачиваем секцию:', key);
+    } else {
+      newExpandedIncomeExpense.add(key);
+      console.log('📖 Разворачиваем секцию:', key);
     }
     
-    setCollapsedIncomeExpense(newCollapsedIncomeExpense);
+    setExpandedIncomeExpense(newExpandedIncomeExpense);
   };
 
   // Функция для сворачивания/разворачивания всех групп
@@ -295,6 +267,14 @@ const PositionCard: React.FC<PositionCardProps> = ({
       totalQuantity,
       averagePrice
     };
+  };
+
+  // ИСПРАВЛЕННАЯ функция проверки состояния сворачивания
+  // Теперь проверяем ОТСУТСТВИЕ ключа в expandedIncomeExpense (инвертированная логика)
+  const isIncomeExpenseCollapsed = (workType: string, positionName: string, incomeExpenseType: 'Доходы' | 'Расходы'): boolean => {
+    const key = `${workType}_${positionName}_${incomeExpenseType}`;
+    // ИНВЕРТИРОВАННАЯ ЛОГИКА: если ключа НЕТ в expandedIncomeExpense, значит секция СВЕРНУТА
+    return !expandedIncomeExpense.has(key);
   };
 
   const canReceiveDrop = draggedItem !== null;
@@ -562,7 +542,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                             {/* Доходы и расходы */}
                             {!positionGroup.isCollapsed && (
                               <div>
-                                {/* Доходы БЕЗ ЦИФР */}
+                                {/* Доходы БЕЗ ЦИФР - ИСПОЛЬЗУЕМ ИСПРАВЛЕННУЮ ЛОГИКУ */}
                                 {incomeItems.length > 0 && (
                                   <div className="border-b border-gray-200">
                                     <button
@@ -576,7 +556,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         {/* Расчет для свернутых доходов */}
-                                        {collapsedIncomeExpense.has(`${workTypeGroup.workType}_${positionGroup.positionName}_Доходы`) && (() => {
+                                        {isIncomeExpenseCollapsed(workTypeGroup.workType, positionGroup.positionName, 'Доходы') && (() => {
                                           const { totalRevenue, totalQuantity, averagePrice } = getCollapsedSectionData(incomeItems);
                                           return (
                                             <div className="flex items-center space-x-2 text-xs text-green-700 mr-2">
@@ -587,14 +567,14 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                             </div>
                                           );
                                         })()}
-                                        {collapsedIncomeExpense.has(`${workTypeGroup.workType}_${positionGroup.positionName}_Доходы`) ? (
+                                        {isIncomeExpenseCollapsed(workTypeGroup.workType, positionGroup.positionName, 'Доходы') ? (
                                           <ChevronDown className="w-4 h-4 text-green-600" />
                                         ) : (
                                           <ChevronUp className="w-4 h-4 text-green-600" />
                                         )}
                                       </div>
                                     </button>
-                                    {!collapsedIncomeExpense.has(`${workTypeGroup.workType}_${positionGroup.positionName}_Доходы`) && (
+                                    {!isIncomeExpenseCollapsed(workTypeGroup.workType, positionGroup.positionName, 'Доходы') && (
                                       <div className="pl-16 pr-2 py-2 space-y-2">
                                         {incomeItems.map((groupedItem) => (
                                           <GroupedRepairItemCard
@@ -613,7 +593,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                   </div>
                                 )}
                                 
-                                {/* Расходы БЕЗ ЦИФР */}
+                                {/* Расходы БЕЗ ЦИФР - ИСПОЛЬЗУЕМ ИСПРАВЛЕННУЮ ЛОГИКУ */}
                                 {expenseItems.length > 0 && (
                                   <div className="border-b border-gray-200">
                                     <button
@@ -627,7 +607,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         {/* Расчет для свернутых расходов */}
-                                        {collapsedIncomeExpense.has(`${workTypeGroup.workType}_${positionGroup.positionName}_Расходы`) && (() => {
+                                        {isIncomeExpenseCollapsed(workTypeGroup.workType, positionGroup.positionName, 'Расходы') && (() => {
                                           const { totalRevenue, totalQuantity, averagePrice } = getCollapsedSectionData(expenseItems);
                                           return (
                                             <div className="flex items-center space-x-2 text-xs text-red-700 mr-2">
@@ -638,14 +618,14 @@ const PositionCard: React.FC<PositionCardProps> = ({
                                             </div>
                                           );
                                         })()}
-                                        {collapsedIncomeExpense.has(`${workTypeGroup.workType}_${positionGroup.positionName}_Расходы`) ? (
+                                        {isIncomeExpenseCollapsed(workTypeGroup.workType, positionGroup.positionName, 'Расходы') ? (
                                           <ChevronDown className="w-4 h-4 text-red-600" />
                                         ) : (
                                           <ChevronUp className="w-4 h-4 text-red-600" />
                                         )}
                                       </div>
                                     </button>
-                                    {!collapsedIncomeExpense.has(`${workTypeGroup.workType}_${positionGroup.positionName}_Расходы`) && (
+                                    {!isIncomeExpenseCollapsed(workTypeGroup.workType, positionGroup.positionName, 'Расходы') && (
                                       <div className="pl-16 pr-2 py-2 space-y-2">
                                         {expenseItems.map((groupedItem) => (
                                           <GroupedRepairItemCard
